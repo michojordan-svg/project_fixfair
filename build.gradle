@@ -1,0 +1,177 @@
+apply plugin: "com.android.application"
+apply plugin: "kotlin-android"
+apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
+apply plugin: "com.google.firebase.crashlytics"
+
+import com.android.build.OutputFile
+
+/**
+ * This is the configuration block to customize your React Native Android app.
+ * By default, the build will fail if you have linting errors.
+ * The two flags below are used to suppress errors in OSS dependencies
+ * To apply custom build properties to your app, use left properties instead.
+ */
+
+project.ext.react = [
+    enableHermes: true,
+    bundleAssetName: "index.android.bundle",
+    enableNdkBuild: false,
+]
+
+/**
+ * Section 1: Add the android compileSdkVersion and other defaults
+ */
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+
+    compileSdkVersion rootProject.ext.compileSdkVersion
+
+    namespace "com.fixfair.app"
+    defaultConfig {
+        applicationId "com.fixfair.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0.0"
+        
+        buildConfigField "String", "BUILD_TYPE", '"release"'
+        
+        // Permissions
+        missingDimensionStrategy 'store', 'play'
+    }
+
+    /**
+     * Set this to true to create four main APKs instead of one:
+     *   - universal
+     *   - armeabi-v7a
+     *   - x86
+     *   - x86_64
+     *
+     * The advantage is the size of each APK is reduced,
+     * However you should upload all the APKs to the Play Store
+     * in order to see that each variant is downloaded by approximately the same number of
+     * users. The exception is x86 which tends to be used by
+     * emulators and is less useful to users.
+     */
+    splits {
+        abi {
+            reset()
+            enable enableSeparateBuildPerCPUArchitecture
+            universalApk enableUniversalApk
+            include "armeabi-v7a", "x86", "x86_64", "arm64-v8a"
+        }
+    }
+
+    signingConfigs {
+        release {
+            if (project.hasProperty('MYAPP_RELEASE_STORE_FILE')) {
+                storeFile file(MYAPP_RELEASE_STORE_FILE)
+                storePassword MYAPP_RELEASE_STORE_PASSWORD
+                keyAlias MYAPP_RELEASE_KEY_ALIAS
+                keyPassword MYAPP_RELEASE_KEY_PASSWORD
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            debuggable true
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            debuggable false
+        }
+    }
+
+    /**
+     * By default, the gradle tasks in `com.facebook.react:react-native` use the JDK version set to the
+     * minSdkVersion of the `targetSdkVersion` of the build.gradle.
+     *
+     * minSdkVersion            minCompileSdk
+     *    16                       16
+     *    17                       17
+     *    ...
+     *    29                       29
+     *    30                       30-32
+     *    31                       31-34
+     *    32                       31-34
+     *    33                       33-34
+     *    34                       34
+     */
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = '11'
+    }
+}
+
+dependencies {
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:32.0.0')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation 'com.google.firebase:firebase-messaging'
+    
+    // Camera
+    implementation 'androidx.camera:camera-camera2:1.3.0'
+    implementation 'androidx.camera:camera-lifecycle:1.3.0'
+    implementation 'androidx.camera:camera-view:1.3.0'
+    
+    // ML Kit
+    implementation 'com.google.mlkit:vision-common:17.3.0'
+    implementation 'com.google.mlkit:object-detection:17.0.1'
+    
+    // Stripe
+    implementation 'com.stripe:stripe-android:20.0.0'
+    
+    // Retrofit
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    
+    // OkHttp
+    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
+    
+    // Google Play Services
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+    
+    // Datadog
+    implementation 'com.datadoghq:dd-sdk-android:1.18.0'
+    implementation 'com.datadoghq:dd-sdk-android-rum:1.18.0'
+    implementation 'com.datadoghq:dd-sdk-android-session-replay:1.0.0'
+    
+    // React Native
+    implementation 'com.facebook.react:react-native:0.73.0'
+    implementation 'com.facebook.react:hermes-android:0.73.0'
+    
+    // Android support
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    
+    // Navigation
+    implementation 'androidx.navigation:navigation-fragment:2.7.0'
+    implementation 'androidx.navigation:navigation-ui:2.7.0'
+    
+    debugImplementation 'com.facebook.flipper:flipper:0.182.0'
+    debugImplementation 'com.facebook.flipper:flipper-network-plugin:0.182.0'
+    debugImplementation 'com.facebook.flipper:flipper-fresco-plugin:0.182.0'
+}
+
+afterEvaluate {
+    extractAarTask
+}
+
+task copyDownloadableDepsToLibs(type: Copy) {
+    from configurations.compileClasspath
+    into "$buildDir/libs"
+}
