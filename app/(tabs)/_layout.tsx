@@ -11,8 +11,8 @@ export default function TabLayout() {
           backgroundColor: '#0D1424',
           borderTopColor: 'rgba(255,255,255,0.06)',
           borderTopWidth: 1,
-          height: 80,
-          paddingBottom: 20,
+          height: 84,
+          paddingBottom: 24,
           paddingTop: 8,
         },
         tabBarActiveTintColor: theme.accent,
@@ -20,7 +20,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '600',
-          marginTop: 4,
+          marginTop: 2,
         },
       }}
     >
@@ -43,11 +43,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="jobs"
+        name="inventory"
         options={{
-          title: 'Jobs',
+          title: 'Inventory',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="construct" size={size} color={color} />
+            <Ionicons name="list" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="community"
+        options={{
+          title: 'Community',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="people" size={size} color={color} />
           ),
         }}
       />
@@ -60,6 +69,7 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="jobs" options={{ href: null }} />
     </Tabs>
   );
 }

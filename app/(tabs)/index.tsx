@@ -6,19 +6,24 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge, Avatar, ProgressBar, SectionHeader } from '@/components/Card';
 
-const categories = [
-  { id: 'plumbing', label: 'Plumbing', icon: 'water', color: theme.accentBlue },
-  { id: 'hvac', label: 'HVAC', icon: 'snow', color: theme.accentWarm },
-  { id: 'electrical', label: 'Electrical', icon: 'flash', color: theme.warning },
-  { id: 'appliance', label: 'Appliance', icon: 'settings', color: theme.accentPurple },
-  { id: 'roofing', label: 'Roofing', icon: 'home', color: theme.success },
-  { id: 'general', label: 'General', icon: 'hammer', color: theme.accent },
+const reminders = [
+  { id: 1, icon: 'snow-outline', label: 'HVAC Filter Due', sub: 'Replace by Jun 15', color: theme.accentWarm, urgent: true },
+  { id: 2, icon: 'water-outline', label: 'Water Heater Check', sub: 'Annual service - Jul 1', color: theme.accentBlue, urgent: false },
+  { id: 3, icon: 'flash-outline', label: 'Electrical Panel', sub: 'Inspection overdue', color: theme.warning, urgent: true },
+];
+
+const faultStats = [
+  { label: 'HVAC', count: 4, color: theme.accentWarm },
+  { label: 'Plumbing', count: 3, color: theme.accentBlue },
+  { label: 'Electrical', count: 1, color: theme.warning },
+  { label: 'Appliances', count: 2, color: theme.accentPurple },
 ];
 
 const nearbyTechs = [
@@ -28,19 +33,29 @@ const nearbyTechs = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [dismissedReminders, setDismissedReminders] = useState<number[]>([]);
+
+  const activeReminders = reminders.filter(r => !dismissedReminders.includes(r.id));
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
+
           {/* Header */}
-          <View style={{ marginBottom: spacing.xxl }}>
-            <Text style={styles.greeting}>Good afternoon,</Text>
-            <Text style={styles.headerName}>Alex Johnson</Text>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.greeting}>Good afternoon,</Text>
+              <Text style={styles.headerName}>Alex Johnson 👋</Text>
+            </View>
+            <TouchableOpacity style={styles.notifBtn}>
+              <Ionicons name="notifications-outline" size={22} color={theme.text} />
+              <View style={styles.notifDot} />
+            </TouchableOpacity>
           </View>
 
-          {/* Health Score Card */}
-          <Card style={{ backgroundColor: 'rgba(13,31,53,0.8)', borderColor: 'rgba(0,212,170,0.2)' }}>
+          {/* Home Health Score */}
+          <Card style={{ backgroundColor: 'rgba(13,31,53,0.9)', borderColor: 'rgba(0,212,170,0.25)' }}>
             <View style={styles.row}>
               <View>
                 <Text style={styles.labelText}>Home Health Score</Text>
@@ -49,42 +64,84 @@ export default function HomeScreen() {
                   <Text style={styles.healthScoreMax}>/100</Text>
                 </View>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
+              <View style={{ alignItems: 'flex-end', gap: 6 }}>
                 <Badge variant="yellow">HVAC Attention</Badge>
+                <Text style={{ fontSize: 11, color: theme.textMuted }}>Good overall</Text>
               </View>
             </View>
             <ProgressBar progress={78} />
-            <Text style={styles.healthNote}>Good overall - HVAC system needs inspection</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+              {faultStats.map(s => (
+                <View key={s.label} style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: s.color }}>{s.count}</Text>
+                  <Text style={{ fontSize: 10, color: theme.textMuted }}>{s.label}</Text>
+                </View>
+              ))}
+            </View>
           </Card>
 
-          {/* Quick Action */}
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => router.push('/(tabs)/diagnose')}
-          >
-            <Ionicons name="videocam" size={20} color={theme.bg} />
-            <Text style={styles.primaryButtonText}>Record & Diagnose Issue</Text>
-          </TouchableOpacity>
-
-          {/* Categories */}
-          <SectionHeader title="Service Categories" />
-          <View style={styles.categoryGrid}>
-            {categories.map((cat) => (
-              <TouchableOpacity key={cat.id} style={styles.categoryItem}>
-                <View style={[styles.categoryIcon, { backgroundColor: cat.color + '20' }]}>
-                  <Ionicons name={cat.icon as any} size={22} color={cat.color} />
+          {/* Eco-Saving Banner */}
+          <Card style={{ backgroundColor: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.2)', marginBottom: spacing.md }}>
+            <View style={styles.row}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(16,185,129,0.15)', justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons name="leaf" size={18} color={theme.success} />
                 </View>
-                <Text style={styles.categoryLabel}>{cat.label}</Text>
-              </TouchableOpacity>
-            ))}
+                <View>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: theme.success }}>Eco Savings This Year</Text>
+                  <Text style={{ fontSize: 11, color: theme.textMuted }}>By repairing instead of replacing</Text>
+                </View>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: theme.success }}>$1,240</Text>
+                <Text style={{ fontSize: 10, color: theme.textMuted }}>3 items saved</Text>
+              </View>
+            </View>
+          </Card>
+
+          {/* Quick Actions */}
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.xl }}>
+            <TouchableOpacity style={[styles.quickAction, { flex: 2, backgroundColor: theme.accent }]}
+              onPress={() => router.push('/(tabs)/diagnose')}>
+              <Ionicons name="videocam" size={18} color={theme.bg} />
+              <Text style={[styles.quickActionText, { color: theme.bg }]}>Record & Diagnose</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.quickAction, { flex: 1, backgroundColor: theme.bgCard }]}
+              onPress={() => router.push('/(tabs)/diagnose')}>
+              <Ionicons name="chatbubble-ellipses" size={18} color={theme.accentPurple} />
+              <Text style={[styles.quickActionText, { color: theme.accentPurple }]}>AI Doctor</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Maintenance Reminders */}
+          {activeReminders.length > 0 && (
+            <>
+              <SectionHeader title="⏰ Maintenance Reminders" />
+              {activeReminders.map(r => (
+                <Card key={r.id} style={{ borderColor: r.urgent ? `${r.color}44` : 'rgba(255,255,255,0.06)', marginBottom: 8 }}>
+                  <View style={styles.row}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: r.color + '20', justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name={r.icon as any} size={18} color={r.color} />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>{r.label}</Text>
+                        <Text style={{ fontSize: 11, color: r.urgent ? theme.warning : theme.textMuted }}>{r.sub}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={() => setDismissedReminders(prev => [...prev, r.id])}>
+                      <Ionicons name="close" size={18} color={theme.textDim} />
+                    </TouchableOpacity>
+                  </View>
+                </Card>
+              ))}
+              <View style={{ marginBottom: spacing.xl }} />
+            </>
+          )}
 
           {/* Active Job */}
           <SectionHeader title="Active Job" />
-          <Card
-            borderColor="rgba(0,212,170,0.2)"
-            onPress={() => router.push('/tracking')}
-          >
+          <Card borderColor="rgba(0,212,170,0.2)" onPress={() => router.push('/tracking')}>
             <View style={styles.row}>
               <View>
                 <Text style={styles.labelText}>FX-2847</Text>
@@ -104,30 +161,26 @@ export default function HomeScreen() {
             </View>
           </Card>
 
-          {/* Trust Score */}
-          <Card style={{ backgroundColor: 'rgba(26,10,46,0.6)', borderColor: 'rgba(139,92,246,0.2)' }}>
-            <View style={styles.row}>
-              <View>
-                <Text style={styles.labelText}>Your Trust Score</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={styles.trustScoreNumber}>847</Text>
-                  <Badge variant="purple">Top 15%</Badge>
+          {/* Fault Statistics Dashboard */}
+          <SectionHeader title="📊 Fault Statistics" action="Details" onAction={() => {}} />
+          <Card>
+            <Text style={{ fontSize: 12, color: theme.textMuted, marginBottom: 12 }}>Most frequent issues (last 12 months)</Text>
+            {faultStats.map((s, i) => (
+              <View key={s.label} style={{ marginBottom: i < faultStats.length - 1 ? 10 : 0 }}>
+                <View style={styles.row}>
+                  <Text style={{ fontSize: 13, color: theme.text, fontWeight: '500' }}>{s.label}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: s.color }}>{s.count} faults</Text>
+                </View>
+                <View style={{ height: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 2, marginTop: 4 }}>
+                  <View style={{ height: 4, width: `${(s.count / 4) * 100}%`, backgroundColor: s.color, borderRadius: 2 }} />
                 </View>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 12, color: theme.success }}>+12 this month</Text>
-                <Text style={{ fontSize: 11, color: theme.textMuted }}>5 jobs - 0 disputes</Text>
-              </View>
-            </View>
+            ))}
           </Card>
 
           {/* Nearby Pros */}
-          <SectionHeader
-            title="Nearby Pros"
-            action="See All"
-            onAction={() => router.push('/technicians')}
-          />
-          {nearbyTechs.map((tech) => (
+          <SectionHeader title="Nearby Technicians" action="See All" onAction={() => router.push('/technicians')} />
+          {nearbyTechs.map(tech => (
             <Card key={tech.id} onPress={() => router.push('/technicians')}>
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <Avatar initials={tech.initials} color={tech.color} size={48} />
@@ -137,20 +190,15 @@ export default function HomeScreen() {
                     <Badge variant="green">Verified</Badge>
                   </View>
                   <Text style={{ fontSize: 12, color: theme.textMuted, marginBottom: 6 }}>{tech.specialty}</Text>
-                  <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                     <View style={{ flexDirection: 'row', gap: 2 }}>
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Ionicons
-                          key={i}
-                          name={i <= Math.floor(tech.rating) ? 'star' : 'star-outline'}
-                          size={11}
-                          color="#F59E0B"
-                        />
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <Ionicons key={i} name={i <= Math.floor(tech.rating) ? 'star' : 'star-outline'} size={11} color="#F59E0B" />
                       ))}
                     </View>
                     <Text style={{ fontSize: 12, color: theme.textMuted }}>{tech.rating}</Text>
                     <Text style={{ fontSize: 12, color: theme.textMuted }}>{tech.eta}</Text>
-                    <Text style={{ marginLeft: 'auto', fontWeight: '800', color: theme.text }}>${tech.price}</Text>
+                    <Text style={{ marginLeft: 'auto', fontWeight: '800', color: theme.accent }}>${tech.price}</Text>
                   </View>
                 </View>
               </View>
@@ -163,130 +211,28 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.bg,
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: theme.bg,
-  },
+  safeArea: { flex: 1, backgroundColor: theme.bg },
+  scrollView: { flex: 1 },
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
+    paddingTop: Platform.OS === 'web' ? 67 : spacing.lg,
   },
-  greeting: {
-    fontSize: 13,
-    color: theme.textMuted,
-  },
-  headerName: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: theme.text,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  labelText: {
-    fontSize: 13,
-    color: theme.textMuted,
-    marginBottom: 2,
-  },
-  healthScoreNumber: {
-    fontSize: 42,
-    fontWeight: '800',
-    color: theme.accent,
-  },
-  healthScoreMax: {
-    fontSize: 16,
-    color: theme.textMuted,
-  },
-  healthNote: {
-    fontSize: 12,
-    color: theme.textMuted,
-  },
-  primaryButton: {
-    backgroundColor: theme.accent,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: borderRadius.xl,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: spacing.xl,
-  },
-  primaryButtonText: {
-    color: theme.bg,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: spacing.xl,
-  },
-  categoryItem: {
-    flex: 1,
-    minWidth: '31%',
-    backgroundColor: theme.bgCard,
-    borderRadius: borderRadius.lg,
-    padding: 14,
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
-  categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryLabel: {
-    fontSize: 12,
-    color: theme.textMuted,
-    fontWeight: '500',
-  },
-  jobTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.text,
-  },
-  jobFooter: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  techName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.text,
-  },
-  techEta: {
-    fontSize: 11,
-    color: theme.textMuted,
-  },
-  escrowAmount: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: theme.accent,
-  },
-  escrowLabel: {
-    fontSize: 10,
-    color: theme.textMuted,
-  },
-  trustScoreNumber: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: theme.accentPurple,
-  },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl },
+  greeting: { fontSize: 13, color: theme.textMuted },
+  headerName: { fontSize: 26, fontWeight: '800', color: theme.text },
+  notifBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: theme.bgCard, justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  notifDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.danger },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  labelText: { fontSize: 13, color: theme.textMuted, marginBottom: 2 },
+  healthScoreNumber: { fontSize: 42, fontWeight: '800', color: theme.accent },
+  healthScoreMax: { fontSize: 16, color: theme.textMuted },
+  quickAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: borderRadius.lg },
+  quickActionText: { fontSize: 13, fontWeight: '700' },
+  jobTitle: { fontSize: 14, fontWeight: '600', color: theme.text },
+  jobFooter: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  techName: { fontSize: 13, fontWeight: '600', color: theme.text },
+  techEta: { fontSize: 11, color: theme.textMuted },
+  escrowAmount: { fontSize: 16, fontWeight: '800', color: theme.accent },
+  escrowLabel: { fontSize: 10, color: theme.textMuted },
 });
