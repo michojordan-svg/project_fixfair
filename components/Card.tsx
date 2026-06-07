@@ -21,7 +21,7 @@ export function Card({ children, style, onPress, borderColor }: CardProps) {
         style,
       ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
     >
       {children}
     </Wrapper>
@@ -34,10 +34,10 @@ interface BadgeProps {
 }
 
 const badgeColors: Record<BadgeVariant, { bg: string; text: string }> = {
-  green: { bg: 'rgba(16,185,129,0.15)', text: '#10B981' },
-  blue: { bg: 'rgba(59,130,246,0.15)', text: '#3B82F6' },
-  yellow: { bg: 'rgba(245,158,11,0.15)', text: '#F59E0B' },
-  purple: { bg: 'rgba(139,92,246,0.15)', text: '#8B5CF6' },
+  green:  { bg: 'rgba(16,185,129,0.15)',  text: '#10B981' },
+  blue:   { bg: 'rgba(59,130,246,0.15)',  text: '#3B82F6' },
+  yellow: { bg: 'rgba(245,158,11,0.15)',  text: '#F59E0B' },
+  purple: { bg: 'rgba(139,92,246,0.15)',  text: '#8B5CF6' },
 };
 
 export function Badge({ variant, children }: BadgeProps) {
@@ -63,12 +63,14 @@ export function Avatar({ initials, color = theme.accentBlue, size = 48 }: Avatar
         {
           width: size,
           height: size,
-          borderRadius: size * 0.3,
-          backgroundColor: color + '40',
+          borderRadius: size * 0.28,
+          backgroundColor: color + '30',
+          borderWidth: 1,
+          borderColor: color + '50',
         },
       ]}
     >
-      <Text style={[styles.avatarText, { fontSize: size * 0.32 }]}>{initials}</Text>
+      <Text style={[styles.avatarText, { fontSize: size * 0.30, color: color }]}>{initials}</Text>
     </View>
   );
 }
@@ -76,12 +78,13 @@ export function Avatar({ initials, color = theme.accentBlue, size = 48 }: Avatar
 interface ProgressBarProps {
   progress: number;
   color?: string;
+  height?: number;
 }
 
-export function ProgressBar({ progress, color = theme.accent }: ProgressBarProps) {
+export function ProgressBar({ progress, color = theme.accent, height = 5 }: ProgressBarProps) {
   return (
-    <View style={styles.progressTrack}>
-      <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: color }]} />
+    <View style={[styles.progressTrack, { height }]}>
+      <View style={[styles.progressFill, { width: `${progress}%` as any, backgroundColor: color }]} />
     </View>
   );
 }
@@ -110,18 +113,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.bgCard,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.07)',
     padding: spacing.lg,
-    marginBottom: spacing.md,
+    marginBottom: 12,
   },
   badge: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: 10,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
     borderRadius: borderRadius.full,
+    alignSelf: 'flex-start',
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.1,
   },
   avatar: {
     justifyContent: 'center',
@@ -129,14 +134,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontWeight: '800',
-    color: theme.text,
   },
   progressTrack: {
-    height: 6,
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: borderRadius.full,
     overflow: 'hidden',
-    marginBottom: spacing.sm,
+    marginVertical: 8,
   },
   progressFill: {
     height: '100%',
@@ -146,10 +149,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 10,
+    marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: theme.text,
   },
