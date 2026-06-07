@@ -229,20 +229,29 @@ export default function DiagnoseScreen() {
 
                   {/* Cost Estimate */}
                   <Card>
-                    <Text style={styles.labelSm}>💰 Repair Cost Estimate</Text>
+                    <Text style={styles.labelSm}>💰 Fixed Price Breakdown</Text>
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                       <View style={styles.costBox}>
-                        <Text style={styles.costLabel}>Parts</Text>
-                        <Text style={styles.costValue}>$15–30</Text>
+                        <Text style={styles.costLabel}>Labor</Text>
+                        <Text style={styles.costValue}>$120</Text>
                       </View>
                       <View style={styles.costBox}>
-                        <Text style={styles.costLabel}>Labor</Text>
-                        <Text style={styles.costValue}>$70–90</Text>
+                        <Text style={styles.costLabel}>Parts</Text>
+                        <Text style={styles.costValue}>$28</Text>
+                      </View>
+                      <View style={styles.costBox}>
+                        <Text style={styles.costLabel}>Fee (15%)</Text>
+                        <Text style={styles.costValue}>$22</Text>
                       </View>
                       <View style={[styles.costBox, { borderColor: theme.accent + '44', backgroundColor: 'rgba(0,212,170,0.06)' }]}>
-                        <Text style={styles.costLabel}>Total</Text>
-                        <Text style={[styles.costValue, { color: theme.accent }]}>$85–120</Text>
+                        <Text style={styles.costLabel}>Fixed</Text>
+                        <Text style={[styles.costValue, { color: theme.accent }]}>$170</Text>
                       </View>
+                    </View>
+                    <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
+                      <Text style={{ fontSize: 11, color: theme.textMuted, lineHeight: 16 }}>
+                        🔒 Price locked — what you see is what you pay. No surprises.
+                      </Text>
                     </View>
                   </Card>
 

@@ -28,10 +28,11 @@ const repairHistory = [
 ];
 
 const menuItems = [
+  { icon: 'home-outline', label: 'My Properties', value: '1 property', color: theme.accentBlue },
+  { icon: 'shield-checkmark-outline', label: 'Warranty Plans', value: '1 active', color: theme.success },
   { icon: 'notifications-outline', label: 'Maintenance Reminders', value: '3 active', color: theme.warning },
-  { icon: 'shield-checkmark-outline', label: 'Insurance & Warranties', value: '3 active', color: theme.accentBlue },
-  { icon: 'card-outline', label: 'Payment Methods', value: '••• 4242', color: theme.accentPurple },
-  { icon: 'star-outline', label: 'Reviews Given', value: '12', color: theme.warning },
+  { icon: 'card-outline', label: 'Payment Methods', value: 'Visa ••••4242', color: theme.accentPurple },
+  { icon: 'star-outline', label: 'Refer & Earn', value: '$25/referral', color: theme.accentWarm },
   { icon: 'help-circle-outline', label: 'Help & Support', value: '', color: theme.accent },
   { icon: 'document-text-outline', label: 'Terms & Privacy', value: '', color: theme.textMuted },
 ];

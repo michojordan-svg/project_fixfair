@@ -60,7 +60,7 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.labelText}>Home Health Score</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-                  <Text style={styles.healthScoreNumber}>78</Text>
+                  <Text style={styles.healthScoreNumber}>79</Text>
                   <Text style={styles.healthScoreMax}>/100</Text>
                 </View>
               </View>
@@ -69,12 +69,22 @@ export default function HomeScreen() {
                 <Text style={{ fontSize: 11, color: theme.textMuted }}>Good overall</Text>
               </View>
             </View>
-            <ProgressBar progress={78} />
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-              {faultStats.map(s => (
-                <View key={s.label} style={{ flex: 1, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 16, fontWeight: '800', color: s.color }}>{s.count}</Text>
-                  <Text style={{ fontSize: 10, color: theme.textMuted }}>{s.label}</Text>
+            <ProgressBar progress={79} />
+            {/* Individual System Health Scores */}
+            <View style={{ marginTop: 12, gap: 6 }}>
+              {[
+                { label: 'Plumbing', score: 85, color: theme.accentBlue },
+                { label: 'Electrical', score: 88, color: theme.warning },
+                { label: 'HVAC', score: 55, color: theme.accentWarm },
+                { label: 'Appliances', score: 91, color: theme.accentPurple },
+                { label: 'Roofing', score: 74, color: theme.success },
+              ].map(sys => (
+                <View key={sys.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={{ fontSize: 11, color: theme.textMuted, width: 68 }}>{sys.label}</Text>
+                  <View style={{ flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                    <View style={{ height: 4, width: `${sys.score}%`, backgroundColor: sys.color, borderRadius: 2 }} />
+                  </View>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: sys.color, width: 28, textAlign: 'right' }}>{sys.score}</Text>
                 </View>
               ))}
             </View>

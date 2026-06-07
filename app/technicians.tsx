@@ -35,6 +35,14 @@ export default function TechniciansScreen() {
       </View>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
+          {/* Fixed Price Lock Banner */}
+          <View style={styles.lockBanner}>
+            <Ionicons name="lock-closed" size={14} color={theme.accent} />
+            <Text style={styles.lockBannerText}>
+              Fixed price locked until job completion — no hidden fees, ever
+            </Text>
+          </View>
+
           {technicians.map((tech) => (
             <TouchableOpacity
               key={tech.id}
@@ -141,4 +149,17 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
   },
   msgBtnText: { color: theme.text, fontWeight: '600', fontSize: 14 },
+  lockBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,212,170,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,212,170,0.2)',
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    marginBottom: spacing.md,
+  },
+  lockBannerText: { fontSize: 12, color: theme.accent, fontWeight: '600', flex: 1 },
 });

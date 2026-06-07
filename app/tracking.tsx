@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -108,16 +109,23 @@ export default function TrackingScreen() {
           <Card style={{ backgroundColor: 'rgba(0,212,170,0.05)', borderColor: 'rgba(0,212,170,0.2)' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View>
-                <Text style={styles.escrowLabel}>Amount in Escrow</Text>
-                <Text style={styles.escrowAmount}>$185.00</Text>
+                <Text style={styles.escrowLabel}>🔒 Escrow Balance</Text>
+                <Text style={styles.escrowAmount}>$170.00</Text>
               </View>
               <View style={styles.lockIcon}>
                 <Ionicons name="lock-closed" size={20} color={theme.accent} />
               </View>
             </View>
             <Text style={styles.escrowNote}>
-              Funds are released only after you confirm job completion.
+              Released only when you approve. 90-day warranty included.
             </Text>
+            <TouchableOpacity
+              style={styles.approveBtn}
+              onPress={() => Alert.alert('Payment Released! 🎉', 'Thank you! $170 has been released to Marcus Webb. Your 90-day warranty is now active.')}
+            >
+              <Ionicons name="checkmark-circle" size={18} color={theme.bg} />
+              <Text style={styles.approveBtnText}>Approve & Release Payment</Text>
+            </TouchableOpacity>
           </Card>
         </View>
       </ScrollView>
@@ -222,5 +230,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  escrowNote: { fontSize: 12, color: theme.textMuted, marginTop: 8, lineHeight: 18 },
+  escrowNote: { fontSize: 12, color: theme.textMuted, marginTop: 8, lineHeight: 18, marginBottom: 12 },
+  approveBtn: {
+    backgroundColor: theme.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: borderRadius.lg,
+  },
+  approveBtnText: { color: theme.bg, fontSize: 15, fontWeight: '700' },
 });
