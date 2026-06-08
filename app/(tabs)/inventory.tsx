@@ -12,35 +12,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge, ProgressBar, SectionHeader } from '@/components/Card';
+import { useUser, Appliance } from '@/contexts/UserContext';
 
 type HealthLevel = 'Excellent' | 'Good' | 'Fair' | 'Poor';
-
-interface Appliance {
-  id: string;
-  name: string;
-  category: string;
-  icon: string;
-  color: string;
-  age: string;
-  health: number;
-  healthLabel: HealthLevel;
-  purchased: string;
-  warrantyExpiry: string;
-  warrantyDaysLeft: number;
-  faults: number;
-  lastService: string;
-  repairCost: number;
-  replaceCost: number;
-  qrCode: string;
-}
-
-const appliances: Appliance[] = [
-  { id: 'A001', name: 'Kitchen Fridge', category: 'Appliance', icon: 'cube', color: theme.accentBlue, age: '4 yrs', health: 62, healthLabel: 'Fair', purchased: 'Jun 2021', warrantyExpiry: 'Jun 2026', warrantyDaysLeft: 23, faults: 2, lastService: 'Mar 2026', repairCost: 95, replaceCost: 650, qrCode: 'FX-A001' },
-  { id: 'A002', name: 'HVAC System', category: 'HVAC', icon: 'snow', color: theme.accentWarm, age: '6 yrs', health: 48, healthLabel: 'Poor', purchased: 'Jan 2019', warrantyExpiry: 'Jan 2024', warrantyDaysLeft: -500, faults: 4, lastService: 'Jan 2026', repairCost: 350, replaceCost: 3200, qrCode: 'FX-A002' },
-  { id: 'A003', name: 'Washing Machine', category: 'Appliance', icon: 'refresh-circle', color: theme.accentPurple, age: '2 yrs', health: 88, healthLabel: 'Good', purchased: 'May 2023', warrantyExpiry: 'May 2028', warrantyDaysLeft: 720, faults: 0, lastService: 'Never', repairCost: 0, replaceCost: 580, qrCode: 'FX-A003' },
-  { id: 'A004', name: 'Water Heater', category: 'Plumbing', icon: 'flame', color: theme.danger, age: '8 yrs', health: 70, healthLabel: 'Good', purchased: 'Mar 2017', warrantyExpiry: 'Mar 2027', warrantyDaysLeft: 270, faults: 1, lastService: 'Jun 2025', repairCost: 180, replaceCost: 900, qrCode: 'FX-A004' },
-  { id: 'A005', name: 'Dishwasher', category: 'Appliance', icon: 'water', color: theme.success, age: '3 yrs', health: 91, healthLabel: 'Excellent', purchased: 'Aug 2022', warrantyExpiry: 'Aug 2027', warrantyDaysLeft: 420, faults: 0, lastService: 'Never', repairCost: 0, replaceCost: 480, qrCode: 'FX-A005' },
-];
 
 const healthColor = (h: number) => {
   if (h >= 80) return theme.success;
@@ -54,6 +28,7 @@ const healthBadge = (label: HealthLevel): 'green' | 'yellow' | 'blue' | 'purple'
 };
 
 export default function InventoryScreen() {
+  const { appliances } = useUser();
   const [selected, setSelected] = useState<Appliance | null>(null);
   const [tab, setTab] = useState<'all' | 'warranty'>('all');
 
