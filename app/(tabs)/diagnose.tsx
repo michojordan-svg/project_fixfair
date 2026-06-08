@@ -206,87 +206,90 @@ export default function DiagnoseScreen() {
 
               {step === 3 && (
                 <>
+                  {/* Result header */}
                   <View style={styles.resultHeader}>
-                    <Ionicons name="checkmark-circle" size={44} color={theme.success} />
-                    <Text style={styles.resultTitle}>Fault Identified</Text>
-                    <Text style={styles.resultConfidence}>94% Confidence</Text>
+                    <View style={styles.resultIconWrap}>
+                      <Ionicons name="checkmark-circle" size={36} color={theme.success} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.resultTitle}>Fault Identified</Text>
+                      <Text style={styles.resultConfidence}>94% confidence · Plumbing</Text>
+                    </View>
+                    <Badge variant="green">AI Result</Badge>
                   </View>
 
-                  {/* Appliance Health Score */}
-                  <Card style={{ borderColor: 'rgba(0,212,170,0.2)' }}>
-                    <View style={styles.row}>
-                      <View>
+                  {/* Detected Issue */}
+                  <Card style={{ borderColor: 'rgba(0,212,170,0.2)', marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <View style={{ flex: 1, paddingRight: 12 }}>
                         <Text style={styles.labelSm}>Detected Issue</Text>
                         <Text style={styles.issueName}>Leaking P-Trap Joint</Text>
                         <Text style={styles.issueDesc}>Worn gasket or loose compression fitting</Text>
                       </View>
-                      <View style={{ alignItems: 'center' }}>
-                        <Text style={{ fontSize: 28, fontWeight: '800', color: theme.warning }}>62</Text>
-                        <Text style={{ fontSize: 10, color: theme.textMuted }}>Health Score</Text>
+                      <View style={{ alignItems: 'center', backgroundColor: 'rgba(245,158,11,0.1)', borderRadius: 10, padding: 8 }}>
+                        <Text style={{ fontSize: 26, fontWeight: '800', color: theme.warning, lineHeight: 30 }}>62</Text>
+                        <Text style={{ fontSize: 9, color: theme.textMuted }}>Health</Text>
                       </View>
                     </View>
                   </Card>
 
-                  {/* Cost Estimate */}
-                  <Card>
+                  {/* Cost Breakdown — line-item style */}
+                  <Card style={{ marginBottom: 10 }}>
                     <Text style={styles.labelSm}>💰 Fixed Price Breakdown</Text>
-                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                      <View style={styles.costBox}>
-                        <Text style={styles.costLabel}>Labor</Text>
-                        <Text style={styles.costValue}>$120</Text>
-                      </View>
-                      <View style={styles.costBox}>
-                        <Text style={styles.costLabel}>Parts</Text>
-                        <Text style={styles.costValue}>$28</Text>
-                      </View>
-                      <View style={styles.costBox}>
-                        <Text style={styles.costLabel}>Fee (15%)</Text>
-                        <Text style={styles.costValue}>$22</Text>
-                      </View>
-                      <View style={[styles.costBox, { borderColor: theme.accent + '44', backgroundColor: 'rgba(0,212,170,0.06)' }]}>
-                        <Text style={styles.costLabel}>Fixed</Text>
-                        <Text style={[styles.costValue, { color: theme.accent }]}>$170</Text>
-                      </View>
+                    <View style={{ marginTop: 10, gap: 8 }}>
+                      {[
+                        { label: 'Labour', value: '$120' },
+                        { label: 'Parts & materials', value: '$28' },
+                        { label: 'Platform fee (15%)', value: '$22' },
+                      ].map(row => (
+                        <View key={row.label} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text style={{ fontSize: 13, color: theme.textMuted }}>{row.label}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.text }}>{row.value}</Text>
+                        </View>
+                      ))}
                     </View>
-                    <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
-                      <Text style={{ fontSize: 11, color: theme.textMuted, lineHeight: 16 }}>
-                        🔒 Price locked — what you see is what you pay. No surprises.
-                      </Text>
+                    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 10 }} />
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Fixed Total</Text>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: theme.accent }}>$170</Text>
                     </View>
+                    <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>
+                      🔒 Price locked — what you see is what you pay.
+                    </Text>
                   </Card>
 
-                  {/* Repair vs Replace */}
-                  <Card style={{ borderColor: 'rgba(59,130,246,0.2)' }}>
-                    <Text style={styles.labelSm}>🔄 Repair vs Replace</Text>
-                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                      <View style={[styles.rvrBox, styles.rvrRepair]}>
-                        <Ionicons name="build" size={20} color={theme.success} />
-                        <Text style={[styles.rvrLabel, { color: theme.success }]}>✅ Repair</Text>
-                        <Text style={styles.rvrCost}>$85–120</Text>
-                        <Text style={styles.rvrDesc}>Recommended. Part is still available, appliance is 4 yrs old.</Text>
+                  {/* Repair vs Replace — stacked full-width */}
+                  <Card style={{ borderColor: 'rgba(59,130,246,0.2)', marginBottom: 10 }}>
+                    <Text style={[styles.labelSm, { marginBottom: 10 }]}>🔄 Repair vs Replace</Text>
+                    <View style={[styles.rvrRow, { borderColor: 'rgba(16,185,129,0.25)', backgroundColor: 'rgba(16,185,129,0.05)' }]}>
+                      <Ionicons name="build" size={18} color={theme.success} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.success }}>✅ Repair — Recommended</Text>
+                        <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>Part available · Appliance is only 4 yrs old</Text>
                       </View>
-                      <View style={styles.rvrBox}>
-                        <Ionicons name="cart" size={20} color={theme.textMuted} />
-                        <Text style={[styles.rvrLabel, { color: theme.textMuted }]}>Replace</Text>
-                        <Text style={styles.rvrCost}>$400–800</Text>
-                        <Text style={styles.rvrDesc}>Not economical. Appliance has 6+ yrs of life left.</Text>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: theme.success }}>$85–120</Text>
+                    </View>
+                    <View style={styles.rvrRow}>
+                      <Ionicons name="cart" size={18} color={theme.textDim} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textMuted }}>Replace</Text>
+                        <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>Not economical · 6+ yrs of life left</Text>
                       </View>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: theme.textMuted }}>$400–800</Text>
                     </View>
                   </Card>
 
                   {/* Eco Impact */}
-                  <Card style={{ backgroundColor: 'rgba(16,185,129,0.06)', borderColor: 'rgba(16,185,129,0.2)' }}>
-                    <View style={styles.row}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <Ionicons name="leaf" size={20} color={theme.success} />
-                        <View>
-                          <Text style={{ fontSize: 13, fontWeight: '700', color: theme.success }}>Eco-Saving by Repairing</Text>
-                          <Text style={{ fontSize: 11, color: theme.textMuted }}>Avoiding landfill & manufacturing waste</Text>
-                        </View>
+                  <Card style={{ backgroundColor: 'rgba(16,185,129,0.06)', borderColor: 'rgba(16,185,129,0.2)', marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Ionicons name="leaf" size={18} color={theme.success} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.success }}>Eco-Saving by Repairing</Text>
+                        <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>Avoiding landfill & manufacturing waste</Text>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ fontSize: 16, fontWeight: '800', color: theme.success }}>$315 saved</Text>
-                        <Text style={{ fontSize: 10, color: theme.textMuted }}>12 kg CO₂ reduced</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: theme.success }}>$315</Text>
+                        <Text style={{ fontSize: 10, color: theme.textMuted }}>12 kg CO₂</Text>
                       </View>
                     </View>
                   </Card>
@@ -410,21 +413,15 @@ const styles = StyleSheet.create({
   analyzingSubtitle: { fontSize: 13, color: theme.textMuted, marginBottom: spacing.xl },
   analysisStep: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   analysisStepText: { fontSize: 13 },
-  resultHeader: { alignItems: 'center', marginBottom: spacing.xl },
-  resultTitle: { fontSize: 24, fontWeight: '800', color: theme.text, marginTop: 10 },
-  resultConfidence: { fontSize: 13, color: theme.success, marginTop: 4 },
+  resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14, backgroundColor: 'rgba(16,185,129,0.06)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)', borderRadius: borderRadius.xl, padding: 14 },
+  resultIconWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(16,185,129,0.15)', justifyContent: 'center', alignItems: 'center' },
+  resultTitle: { fontSize: 16, fontWeight: '800', color: theme.text },
+  resultConfidence: { fontSize: 11, color: theme.success, marginTop: 2 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  labelSm: { fontSize: 12, color: theme.textMuted, marginBottom: 4 },
-  issueName: { fontSize: 17, fontWeight: '800', color: theme.text },
-  issueDesc: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
-  costBox: { flex: 1, backgroundColor: theme.bgElevated, borderRadius: borderRadius.md, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-  costLabel: { fontSize: 11, color: theme.textMuted },
-  costValue: { fontSize: 15, fontWeight: '800', color: theme.text, marginTop: 4 },
-  rvrBox: { flex: 1, backgroundColor: theme.bgElevated, borderRadius: borderRadius.md, padding: 12, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-  rvrRepair: { borderColor: 'rgba(16,185,129,0.3)', backgroundColor: 'rgba(16,185,129,0.06)' },
-  rvrLabel: { fontSize: 13, fontWeight: '700' },
-  rvrCost: { fontSize: 14, fontWeight: '800', color: theme.text },
-  rvrDesc: { fontSize: 10, color: theme.textMuted, textAlign: 'center', lineHeight: 14 },
+  labelSm: { fontSize: 11, color: theme.textMuted, marginBottom: 4, letterSpacing: 0.3 },
+  issueName: { fontSize: 16, fontWeight: '800', color: theme.text },
+  issueDesc: { fontSize: 12, color: theme.textMuted, marginTop: 3 },
+  rvrRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', marginBottom: 8 },
   chatHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: spacing.lg, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   chatAvatarWrap: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(139,92,246,0.15)', justifyContent: 'center', alignItems: 'center' },
   chatTitle: { fontSize: 14, fontWeight: '700', color: theme.text },

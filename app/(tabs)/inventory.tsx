@@ -137,20 +137,36 @@ export default function InventoryScreen() {
           {/* Warranty Tracker */}
           {tab === 'warranty' && (
             <>
+              {/* Summary row */}
+              <View style={styles.warrantyStats}>
+                <View style={styles.warrantyStatCell}>
+                  <Text style={[styles.warrantyStatNum, { color: theme.danger }]}>{expired.length}</Text>
+                  <Text style={styles.warrantyStatLabel}>Expired</Text>
+                </View>
+                <View style={styles.warrantyStatDivider} />
+                <View style={styles.warrantyStatCell}>
+                  <Text style={[styles.warrantyStatNum, { color: theme.warning }]}>{expiringSoon.length}</Text>
+                  <Text style={styles.warrantyStatLabel}>Expiring Soon</Text>
+                </View>
+                <View style={styles.warrantyStatDivider} />
+                <View style={styles.warrantyStatCell}>
+                  <Text style={[styles.warrantyStatNum, { color: theme.success }]}>{appliances.filter(a => a.warrantyDaysLeft > 90).length}</Text>
+                  <Text style={styles.warrantyStatLabel}>Active</Text>
+                </View>
+              </View>
+
               {expired.length > 0 && (
                 <>
-                  <SectionHeader title="⚠️ Expired Warranties" />
+                  <SectionHeader title="⚠️ Expired" />
                   {expired.map(a => (
-                    <Card key={a.id} borderColor="rgba(239,68,68,0.3)">
-                      <View style={styles.row}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                          <View style={[styles.appIcon, { backgroundColor: theme.danger + '20' }]}>
-                            <Ionicons name={a.icon as any} size={20} color={theme.danger} />
-                          </View>
-                          <View>
-                            <Text style={styles.appName}>{a.name}</Text>
-                            <Text style={styles.appSub}>Expired: {a.warrantyExpiry}</Text>
-                          </View>
+                    <Card key={a.id} borderColor="rgba(239,68,68,0.25)">
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={[styles.appIcon, { backgroundColor: theme.danger + '18' }]}>
+                          <Ionicons name={a.icon as any} size={20} color={theme.danger} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.appName}>{a.name}</Text>
+                          <Text style={styles.appSub}>Expired {a.warrantyExpiry} · No coverage</Text>
                         </View>
                         <Badge variant="purple">Expired</Badge>
                       </View>
@@ -161,17 +177,23 @@ export default function InventoryScreen() {
 
               {expiringSoon.length > 0 && (
                 <>
-                  <SectionHeader title="🔔 Expiring Soon (< 90 days)" />
+                  <SectionHeader title="🔔 Expiring Soon" />
                   {expiringSoon.map(a => (
-                    <Card key={a.id} borderColor="rgba(245,158,11,0.3)">
-                      <View style={styles.row}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                          <View style={[styles.appIcon, { backgroundColor: theme.warning + '20' }]}>
-                            <Ionicons name={a.icon as any} size={20} color={theme.warning} />
-                          </View>
-                          <View>
-                            <Text style={styles.appName}>{a.name}</Text>
-                            <Text style={styles.appSub}>Expires: {a.warrantyExpiry} · {a.warrantyDaysLeft} days left</Text>
+                    <Card key={a.id} borderColor="rgba(245,158,11,0.25)">
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={[styles.appIcon, { backgroundColor: theme.warning + '18' }]}>
+                          <Ionicons name={a.icon as any} size={20} color={theme.warning} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.appName}>{a.name}</Text>
+                          <Text style={styles.appSub}>Expires {a.warrantyExpiry}</Text>
+                          <View style={{ marginTop: 6 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+                              <Text style={{ fontSize: 10, color: theme.warning }}>{a.warrantyDaysLeft} days left</Text>
+                            </View>
+                            <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                              <View style={{ height: 3, width: `${Math.min((a.warrantyDaysLeft / 90) * 100, 100)}%` as any, backgroundColor: theme.warning, borderRadius: 2 }} />
+                            </View>
                           </View>
                         </View>
                         <Badge variant="yellow">Soon</Badge>
@@ -181,18 +203,16 @@ export default function InventoryScreen() {
                 </>
               )}
 
-              <SectionHeader title="✅ Active Warranties" />
+              <SectionHeader title="✅ Active" />
               {appliances.filter(a => a.warrantyDaysLeft > 90).map(a => (
                 <Card key={a.id}>
-                  <View style={styles.row}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <View style={[styles.appIcon, { backgroundColor: a.color + '20' }]}>
-                        <Ionicons name={a.icon as any} size={20} color={a.color} />
-                      </View>
-                      <View>
-                        <Text style={styles.appName}>{a.name}</Text>
-                        <Text style={styles.appSub}>Expires: {a.warrantyExpiry} · {a.warrantyDaysLeft} days left</Text>
-                      </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={[styles.appIcon, { backgroundColor: a.color + '18' }]}>
+                      <Ionicons name={a.icon as any} size={20} color={a.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.appName}>{a.name}</Text>
+                      <Text style={styles.appSub}>Expires {a.warrantyExpiry} · {a.warrantyDaysLeft} days left</Text>
                     </View>
                     <Badge variant="green">Active</Badge>
                   </View>
@@ -322,6 +342,11 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, fontWeight: '600', color: theme.textMuted },
   tabTextActive: { color: theme.bg },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  warrantyStats: { flexDirection: 'row', backgroundColor: theme.bgCard, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginBottom: spacing.lg },
+  warrantyStatCell: { flex: 1, alignItems: 'center', paddingVertical: 14 },
+  warrantyStatNum: { fontSize: 22, fontWeight: '800' },
+  warrantyStatLabel: { fontSize: 10, color: theme.textMuted, marginTop: 2, textAlign: 'center' },
+  warrantyStatDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 8 },
   appIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   appName: { fontSize: 14, fontWeight: '700', color: theme.text },
   appSub: { fontSize: 11, color: theme.textMuted, marginTop: 2 },
