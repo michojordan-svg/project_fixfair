@@ -113,7 +113,7 @@ export default function DiagnoseScreen() {
                 <>
                   <View style={styles.aiBubble}>
                     <Text style={styles.aiBubbleText}>
-                      ⚡ Select a category, choose your input method, then record a 30–60 sec video or use a voice description. I'll detect the fault, estimate costs, and recommend repair vs replace.
+                      ⚡ Pick a category and record a 30–60 sec video (or voice note). I'll detect the fault, estimate the fixed cost, and tell you whether to repair or replace.
                     </Text>
                   </View>
 
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: 4,
     gap: 4,
-    marginTop: Platform.OS === 'web' ? 67 : spacing.lg,
+    marginTop: Platform.OS === 'web' ? 60 : spacing.lg,
   },
   modeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: borderRadius.md },
   modeBtnActive: { backgroundColor: theme.accent },
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: theme.bg, fontSize: 15, fontWeight: '700' },
   secondaryButton: { backgroundColor: theme.bgCard, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', paddingVertical: 14, borderRadius: borderRadius.xl, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   secondaryButtonText: { color: theme.text, fontSize: 14, fontWeight: '500' },
-  recordingArea: { height: 340, backgroundColor: '#050a14', borderRadius: borderRadius.xl, borderWidth: 2, borderColor: 'rgba(0,212,170,0.3)', marginBottom: spacing.xl, justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },
+  recordingArea: { height: 260, backgroundColor: '#050a14', borderRadius: borderRadius.xl, borderWidth: 2, borderColor: 'rgba(0,212,170,0.3)', marginBottom: spacing.xl, justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' },
   recordButton: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#EF4444', justifyContent: 'center', alignItems: 'center' },
   recordButtonInner: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EF4444' },
   recordingText: { color: 'rgba(255,255,255,0.8)', marginTop: 12, fontSize: 13 },

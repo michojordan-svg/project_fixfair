@@ -119,7 +119,7 @@ export default function CommunityScreen() {
                     <Avatar initials={s.initials} color={s.color} size={36} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.solutionUser}>{s.user}</Text>
-                      <Badge variant="blue">{s.category}</Badge>
+                      <Badge variant={s.category === 'HVAC' || s.category === 'Electrical' ? 'yellow' : s.category === 'Appliance' ? 'purple' : s.category === 'Roofing' ? 'green' : 'blue'}>{s.category}</Badge>
                     </View>
                   </View>
                   <Text style={styles.solutionTitle}>{s.title}</Text>
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: theme.bgCard,
     marginHorizontal: spacing.lg,
-    marginTop: Platform.OS === 'web' ? 67 : spacing.lg,
+    marginTop: Platform.OS === 'web' ? 60 : spacing.lg,
     borderRadius: borderRadius.lg,
     padding: 4,
     gap: 4,

@@ -48,8 +48,8 @@ const healthColor = (h: number) => {
   return theme.danger;
 };
 
-const healthBadge = (label: HealthLevel) => {
-  const map: Record<HealthLevel, 'green' | 'yellow' | 'blue' | 'purple'> = { Excellent: 'green', Good: 'green', Fair: 'yellow', Poor: 'purple' };
+const healthBadge = (label: HealthLevel): 'green' | 'yellow' | 'blue' | 'purple' => {
+  const map: Record<HealthLevel, 'green' | 'yellow' | 'blue' | 'purple'> = { Excellent: 'green', Good: 'blue', Fair: 'yellow', Poor: 'purple' };
   return map[label];
 };
 
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
-    paddingTop: Platform.OS === 'web' ? 67 : spacing.lg,
+    paddingTop: Platform.OS === 'web' ? 60 : spacing.lg,
   },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl },
   title: { fontSize: 26, fontWeight: '800', color: theme.text },
@@ -318,9 +318,9 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, color: theme.textMuted, marginTop: 2, textAlign: 'center' },
   tabRow: { flexDirection: 'row', backgroundColor: theme.bgCard, borderRadius: borderRadius.lg, padding: 4, marginBottom: spacing.xl, gap: 4 },
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: borderRadius.md, alignItems: 'center' },
-  tabBtnActive: { backgroundColor: theme.bgElevated },
+  tabBtnActive: { backgroundColor: theme.accent },
   tabText: { fontSize: 13, fontWeight: '600', color: theme.textMuted },
-  tabTextActive: { color: theme.text },
+  tabTextActive: { color: theme.bg },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   appIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   appName: { fontSize: 14, fontWeight: '700', color: theme.text },

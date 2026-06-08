@@ -81,7 +81,7 @@ export default function ProfileScreen() {
           <View style={styles.sectionTabRow}>
             {(['overview', 'history', 'gallery'] as const).map(t => (
               <TouchableOpacity key={t} style={[styles.sectionTab, activeSection === t && styles.sectionTabActive]} onPress={() => setActiveSection(t)}>
-                <Text style={[styles.sectionTabText, activeSection === t && { color: theme.accent }]}>
+                <Text style={[styles.sectionTabText, activeSection === t && { color: theme.bg }]}>
                   {t === 'overview' ? 'Overview' : t === 'history' ? 'History' : 'Gallery'}
                 </Text>
               </TouchableOpacity>
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
-    paddingTop: Platform.OS === 'web' ? 67 : spacing.lg,
+    paddingTop: Platform.OS === 'web' ? 60 : spacing.lg,
   },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: spacing.xl },
   userName: { fontSize: 20, fontWeight: '800', color: theme.text },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, color: theme.textMuted, marginTop: 2, textAlign: 'center' },
   sectionTabRow: { flexDirection: 'row', backgroundColor: theme.bgCard, borderRadius: borderRadius.lg, padding: 4, marginBottom: spacing.xl, gap: 4 },
   sectionTab: { flex: 1, paddingVertical: 10, borderRadius: borderRadius.md, alignItems: 'center' },
-  sectionTabActive: { backgroundColor: theme.bgElevated },
+  sectionTabActive: { backgroundColor: theme.accent },
   sectionTabText: { fontSize: 13, fontWeight: '600', color: theme.textMuted },
   menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: 14 },
   menuItemBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
