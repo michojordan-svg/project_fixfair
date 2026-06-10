@@ -14,13 +14,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge, Avatar } from '@/components/Card';
+import { useUser } from '@/contexts/UserContext';
 
 const timeSlots = [
-  { id: 'today1', label: 'Today 2-4 PM', available: true },
-  { id: 'today2', label: 'Today 4-6 PM', available: true },
-  { id: 'tom1', label: 'Tomorrow 9-11 AM', available: true },
-  { id: 'tom2', label: 'Tomorrow 11 AM-1 PM', available: false },
-  { id: 'tom3', label: 'Tomorrow 2-4 PM', available: true },
+  { id: 'today1', label: 'Today 2–4 PM',       available: true  },
+  { id: 'today2', label: 'Today 4–6 PM',        available: true  },
+  { id: 'tom1',   label: 'Tomorrow 9–11 AM',    available: true  },
+  { id: 'tom2',   label: 'Tomorrow 11 AM–1 PM', available: false },
+  { id: 'tom3',   label: 'Tomorrow 2–4 PM',     available: true  },
 ];
 
 function StepIndicator({ step }: { step: number }) {
@@ -34,15 +35,10 @@ function StepIndicator({ step }: { step: number }) {
         return (
           <React.Fragment key={label}>
             <View style={{ alignItems: 'center', flex: 1 }}>
-              <View style={[
-                stepStyles.dot,
-                done && stepStyles.dotDone,
-                active && stepStyles.dotActive,
-              ]}>
+              <View style={[stepStyles.dot, done && stepStyles.dotDone, active && stepStyles.dotActive]}>
                 {done
                   ? <Ionicons name="checkmark" size={14} color={theme.bg} />
-                  : <Text style={[stepStyles.dotNum, active && { color: theme.bg }]}>{idx}</Text>
-                }
+                  : <Text style={[stepStyles.dotNum, active && { color: theme.bg }]}>{idx}</Text>}
               </View>
               <Text style={[stepStyles.dotLabel, active && { color: theme.text }]}>{label}</Text>
             </View>
@@ -57,14 +53,9 @@ function StepIndicator({ step }: { step: number }) {
 }
 
 const stepStyles = StyleSheet.create({
-  dot: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 4,
-  },
+  dot: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   dotActive: { backgroundColor: theme.accent, borderColor: theme.accent },
-  dotDone: { backgroundColor: theme.success, borderColor: theme.success },
+  dotDone:   { backgroundColor: theme.success, borderColor: theme.success },
   dotNum: { fontSize: 12, fontWeight: '700', color: theme.textMuted },
   dotLabel: { fontSize: 10, color: theme.textMuted, fontWeight: '600' },
   line: { flex: 1, height: 2, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: -16 },
@@ -73,11 +64,15 @@ const stepStyles = StyleSheet.create({
 
 export default function BookingScreen() {
   const router = useRouter();
+  const { profile } = useUser();
+
   const [step, setStep] = useState(1);
   const [selectedSlot, setSelectedSlot] = useState<string | null>('today1');
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(profile.address);
   const [instructions, setInstructions] = useState('');
   const [addressError, setAddressError] = useState('');
+
+  const slotLabel = timeSlots.find(s => s.id === selectedSlot)?.label ?? 'Today 2–4 PM';
 
   function validateAndNext() {
     if (!address.trim()) {
@@ -95,8 +90,6 @@ export default function BookingScreen() {
     setAddressError('');
     setStep(2);
   }
-
-  const slotLabel = timeSlots.find(s => s.id === selectedSlot)?.label ?? 'Today 2-4 PM';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -116,7 +109,7 @@ export default function BookingScreen() {
 
           <StepIndicator step={step} />
 
-          {/* Technician summary always visible */}
+          {/* Technician summary — always visible */}
           <Card>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
               <Avatar initials="MW" color={theme.accentBlue} size={52} />
@@ -137,7 +130,16 @@ export default function BookingScreen() {
           {/* STEP 1 — Schedule */}
           {step === 1 && (
             <>
-              <Text style={styles.sectionTitle}>Your Address</Text>
+              <Text style={styles.sectionTitle}>Service Address</Text>
+              {!!profile.address && (
+                <View style={styles.savedAddressRow}>
+                  <Ionicons name="home" size={13} color={theme.accent} />
+                  <Text style={styles.savedAddressText}>Saved: {profile.address}</Text>
+                  <TouchableOpacity onPress={() => setAddress(profile.address)}>
+                    <Text style={styles.useBtn}>Use</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <TextInput
                 style={[styles.input, addressError ? styles.inputError : null]}
                 placeholder="123 Main St, City, State"
@@ -146,9 +148,7 @@ export default function BookingScreen() {
                 onChangeText={t => { setAddress(t); setAddressError(''); }}
                 autoCapitalize="words"
               />
-              {!!addressError && (
-                <Text style={styles.errorText}>{addressError}</Text>
-              )}
+              {!!addressError && <Text style={styles.errorText}>{addressError}</Text>}
 
               <Text style={styles.sectionTitle}>Select Time Slot</Text>
               <View style={{ gap: 8, marginBottom: spacing.xl }}>
@@ -186,7 +186,7 @@ export default function BookingScreen() {
               <Text style={styles.sectionTitle}>Special Instructions</Text>
               <TextInput
                 style={[styles.input, { minHeight: 80, textAlignVertical: 'top', marginBottom: spacing.xl }]}
-                placeholder="Any access notes, gate codes, or details about the issue..."
+                placeholder="Any access notes, gate codes, or details about the issue…"
                 placeholderTextColor={theme.textDim}
                 multiline
                 numberOfLines={3}
@@ -210,9 +210,9 @@ export default function BookingScreen() {
                 <Text style={styles.issueDesc}>Plumbing · Moderate Urgency</Text>
                 <View style={styles.divider} />
                 {[
-                  { label: 'Labor', value: '$120' },
-                  { label: 'Parts', value: '$28' },
-                  { label: 'FixFair Fee (15%)', value: '$22' },
+                  { label: 'Labour',            value: '$120' },
+                  { label: 'Parts',             value: '$28'  },
+                  { label: 'FixFair Fee (15%)', value: '$22'  },
                 ].map(row => (
                   <View key={row.label} style={[styles.summaryRow, { marginBottom: 6 }]}>
                     <Text style={styles.summaryLabel}>{row.label}</Text>
@@ -229,21 +229,26 @@ export default function BookingScreen() {
               <Card style={{ backgroundColor: 'rgba(0,212,170,0.05)', borderColor: 'rgba(0,212,170,0.2)' }}>
                 <Text style={styles.sectionLabel}>Booking Summary</Text>
                 {[
-                  { label: 'Technician', value: 'Marcus Webb' },
-                  { label: 'Time', value: slotLabel },
-                  { label: 'Address', value: address || '—' },
-                  { label: 'Fixed Price', value: '$170' },
+                  { label: 'Technician', value: 'Marcus Webb'         },
+                  { label: 'Time',       value: slotLabel             },
+                  { label: 'Address',    value: address || '—'        },
+                  { label: 'Customer',   value: profile.name          },
+                  { label: 'Fixed Price',value: '$170'                },
                 ].map((row) => (
                   <View key={row.label} style={[styles.summaryRow, { marginBottom: 8 }]}>
                     <Text style={styles.summaryLabel}>{row.label}</Text>
-                    <Text style={[styles.summaryValue, { flex: 1, textAlign: 'right', marginLeft: 12 }]} numberOfLines={1}>{row.value}</Text>
+                    <Text style={[styles.summaryValue, { flex: 1, textAlign: 'right', marginLeft: 12 }]} numberOfLines={1}>
+                      {row.value}
+                    </Text>
                   </View>
                 ))}
               </Card>
 
               <Card style={{ backgroundColor: 'rgba(13,31,53,0.6)', borderColor: 'rgba(0,212,170,0.15)' }}>
                 <Text style={{ fontSize: 12, color: theme.textMuted, lineHeight: 18 }}>
-                  🛡️ Payment is held in escrow and released <Text style={{ color: theme.text, fontWeight: '600' }}>only after you approve</Text> the completed work. 90-day warranty included on all repairs.
+                  🛡️ Payment is held in escrow and released{' '}
+                  <Text style={{ color: theme.text, fontWeight: '600' }}>only after you approve</Text>
+                  {' '}the completed work. 90-day warranty included on all repairs.
                 </Text>
               </Card>
 
@@ -266,17 +271,15 @@ export default function BookingScreen() {
                   <Ionicons name="checkmark" size={32} color={theme.bg} />
                 </View>
                 <Text style={styles.successTitle}>Booking Confirmed!</Text>
-                <Text style={styles.successSub}>
-                  Marcus Webb will arrive {slotLabel}
-                </Text>
+                <Text style={styles.successSub}>Marcus Webb will arrive {slotLabel}</Text>
                 <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 8, textAlign: 'center' }}>
-                  Job #FX-2847 · $170 in escrow
+                  Job #FX-2847 · $170 in escrow · {profile.name}
                 </Text>
               </View>
 
               <Card style={{ backgroundColor: 'rgba(0,212,170,0.05)', borderColor: 'rgba(0,212,170,0.2)' }}>
                 {[
-                  { icon: '📍', text: 'Technician en route — you\'ll get SMS updates' },
+                  { icon: '📍', text: "Technician en route — you'll get SMS updates" },
                   { icon: '🔒', text: 'Your $170 is safe in escrow until you approve' },
                   { icon: '🛡️', text: '90-day warranty on all work completed' },
                 ].map((item, i) => (
@@ -315,11 +318,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: theme.bgCard,
-    justifyContent: 'center', alignItems: 'center',
-  },
+  backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.bgCard, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 17, fontWeight: '700', color: theme.text },
   scrollView: { flex: 1 },
   content: { paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, paddingBottom: spacing.xxl },
@@ -330,30 +329,13 @@ const styles = StyleSheet.create({
   issueName: { fontSize: 16, fontWeight: '700', color: theme.text },
   issueDesc: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 12 },
-  input: {
-    backgroundColor: theme.bgCard,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    color: theme.text,
-    fontSize: 14,
-    marginBottom: spacing.md,
-  },
+  savedAddressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,212,170,0.06)', borderRadius: borderRadius.md, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(0,212,170,0.15)' },
+  savedAddressText: { flex: 1, fontSize: 12, color: theme.textMuted },
+  useBtn: { fontSize: 12, fontWeight: '700', color: theme.accent },
+  input: { backgroundColor: theme.bgCard, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: borderRadius.lg, paddingHorizontal: spacing.md, paddingVertical: 12, color: theme.text, fontSize: 14, marginBottom: spacing.md },
   inputError: { borderColor: '#EF4444' },
   errorText: { fontSize: 12, color: '#EF4444', marginTop: -8, marginBottom: 12 },
-  slotBtn: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: theme.bgCard,
-  },
+  slotBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 14, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: theme.bgCard },
   slotBtnSelected: { backgroundColor: theme.accent, borderColor: theme.accent },
   slotBtnDisabled: { opacity: 0.4 },
   slotText: { fontSize: 14, fontWeight: '600', color: theme.text },
@@ -361,42 +343,12 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   summaryLabel: { fontSize: 13, color: theme.textMuted },
   summaryValue: { fontSize: 13, fontWeight: '600', color: theme.text },
-  primaryBtn: {
-    backgroundColor: theme.accent,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    borderRadius: borderRadius.xl,
-    marginTop: spacing.md,
-  },
+  primaryBtn: { backgroundColor: theme.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: borderRadius.xl, marginTop: spacing.md },
   primaryBtnText: { color: theme.bg, fontSize: 16, fontWeight: '700' },
-  secondaryBtn: {
-    backgroundColor: theme.bgElevated,
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
+  secondaryBtn: { backgroundColor: theme.bgElevated, alignItems: 'center', paddingVertical: 14, borderRadius: borderRadius.xl, marginTop: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   secondaryBtnText: { color: theme.text, fontSize: 14, fontWeight: '600' },
-  successCard: {
-    backgroundColor: 'rgba(16,185,129,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.25)',
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  successIcon: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: theme.success,
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 16,
-  },
+  successCard: { backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', borderRadius: borderRadius.xl, padding: spacing.xl, alignItems: 'center', marginBottom: spacing.md },
+  successIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.success, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   successTitle: { fontSize: 20, fontWeight: '800', color: theme.text, marginBottom: 6 },
   successSub: { fontSize: 14, color: theme.textMuted, textAlign: 'center' },
 });

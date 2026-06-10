@@ -39,6 +39,8 @@ export interface Job {
   amount: number;
   status: 'in_progress' | 'scheduled' | 'completed';
   rating: number;
+  eta?: string;
+  review?: string;
 }
 
 export interface Appliance {
@@ -102,11 +104,11 @@ const DEFAULT_REMINDERS: Reminder[] = [
 ];
 
 const DEFAULT_JOBS: Job[] = [
-  { id: 'FX-2847', title: 'Plumbing – Leaky Faucet',     category: 'Plumbing',   tech: 'Marcus Webb',  techInitials: 'MW', techColor: theme.accentBlue,   date: 'Jun 7, 2026',  amount: 170, status: 'in_progress', rating: 0 },
-  { id: 'FX-2801', title: 'HVAC – Filter Replacement',   category: 'HVAC',       tech: 'Sarah Chen',   techInitials: 'SC', techColor: theme.accentWarm,   date: 'May 28, 2026', amount: 95,  status: 'completed',   rating: 5 },
-  { id: 'FX-2755', title: 'Electrical – Outlet Repair',  category: 'Electrical', tech: 'David Park',   techInitials: 'DP', techColor: theme.warning,       date: 'May 12, 2026', amount: 140, status: 'completed',   rating: 4 },
-  { id: 'FX-2710', title: 'Appliance – Dishwasher',      category: 'Appliance',  tech: 'Maria Torres', techInitials: 'MT', techColor: theme.accentPurple,  date: 'Apr 30, 2026', amount: 220, status: 'completed',   rating: 5 },
-  { id: 'FX-2655', title: 'Plumbing – Drain Cleaning',   category: 'Plumbing',   tech: 'Marcus Webb',  techInitials: 'MW', techColor: theme.accentBlue,   date: 'Mar 15, 2026', amount: 110, status: 'completed',   rating: 5 },
+  { id: 'FX-2847', title: 'Plumbing – Leaky Faucet',    category: 'Plumbing',   tech: 'Marcus Webb',  techInitials: 'MW', techColor: theme.accentBlue,   date: 'Jun 7, 2026',  amount: 170, status: 'in_progress', rating: 0,   eta: '2:30 PM' },
+  { id: 'FX-2801', title: 'HVAC – Filter Replacement',  category: 'HVAC',       tech: 'Sarah Chen',   techInitials: 'SC', techColor: theme.accentWarm,   date: 'May 28, 2026', amount: 95,  status: 'completed',   rating: 5,   review: 'Sarah was incredibly professional and quick. Excellent service!' },
+  { id: 'FX-2755', title: 'Electrical – Outlet Repair', category: 'Electrical', tech: 'David Park',   techInitials: 'DP', techColor: theme.warning,       date: 'May 12, 2026', amount: 140, status: 'completed',   rating: 4,   review: 'Good work, explained everything clearly. Arrived on time.' },
+  { id: 'FX-2710', title: 'Appliance – Dishwasher',     category: 'Appliance',  tech: 'Maria Torres', techInitials: 'MT', techColor: theme.accentPurple,  date: 'Apr 30, 2026', amount: 220, status: 'completed',   rating: 5,   review: 'Maria diagnosed and fixed the issue in under an hour. Amazing!' },
+  { id: 'FX-2655', title: 'Plumbing – Drain Cleaning',  category: 'Plumbing',   tech: 'Marcus Webb',  techInitials: 'MW', techColor: theme.accentBlue,   date: 'Mar 15, 2026', amount: 110, status: 'completed',   rating: 5,   review: 'Fast, thorough, and honest pricing. Would book again.' },
 ];
 
 const DEFAULT_APPLIANCES: Appliance[] = [

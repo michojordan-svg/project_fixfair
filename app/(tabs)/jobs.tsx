@@ -12,21 +12,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge, Avatar } from '@/components/Card';
-
-const activeJobs = [
-  { id: 'FX-2847', title: 'Plumbing - Leaky Faucet', tech: 'Marcus Webb', initials: 'MW', color: theme.accentBlue, eta: '2:30 PM', amount: 185 },
-];
-
-const pastJobs = [
-  { id: 'FX-2801', title: 'HVAC – Filter Replacement', tech: 'Sarah Chen', initials: 'SC', color: theme.accentWarm, date: 'May 28, 2026', amount: 95, rating: 5, review: 'Sarah was incredibly professional and quick. Excellent service!' },
-  { id: 'FX-2755', title: 'Electrical – Outlet Repair', tech: 'David Park', initials: 'DP', color: theme.warning, date: 'May 12, 2026', amount: 140, rating: 4, review: 'Good work, explained everything clearly. Arrived on time.' },
-  { id: 'FX-2710', title: 'Appliance – Dishwasher Fix', tech: 'Maria Torres', initials: 'MT', color: theme.accentPurple, date: 'Apr 30, 2026', amount: 220, rating: 5, review: 'Maria diagnosed and fixed the issue in under an hour. Amazing!' },
-];
+import { useUser } from '@/contexts/UserContext';
 
 export default function JobsScreen() {
   const router = useRouter();
+  const { jobs } = useUser();
   const [tab, setTab] = useState<'active' | 'past'>('active');
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
+
+  const activeJobs = jobs.filter(j => j.status === 'in_progress' || j.status === 'scheduled');
+  const pastJobs = jobs.filter(j => j.status === 'completed');
+  const totalSpent = pastJobs.reduce((s, j) => s + j.amount, 0);
+  const avgRating = pastJobs.length
+    ? (pastJobs.reduce((s, j) => s + j.rating, 0) / pastJobs.length).toFixed(1)
+    : '—';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -36,11 +35,21 @@ export default function JobsScreen() {
 
           {/* Tab Switcher */}
           <View style={styles.tabRow}>
-            <TouchableOpacity style={[styles.tabBtn, tab === 'active' && styles.tabBtnActive]} onPress={() => setTab('active')}>
-              <Text style={[styles.tabBtnText, tab === 'active' && styles.tabBtnTextActive]}>Active ({activeJobs.length})</Text>
+            <TouchableOpacity
+              style={[styles.tabBtn, tab === 'active' && styles.tabBtnActive]}
+              onPress={() => setTab('active')}
+            >
+              <Text style={[styles.tabBtnText, tab === 'active' && styles.tabBtnTextActive]}>
+                Active ({activeJobs.length})
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.tabBtn, tab === 'past' && styles.tabBtnActive]} onPress={() => setTab('past')}>
-              <Text style={[styles.tabBtnText, tab === 'past' && styles.tabBtnTextActive]}>Completed ({pastJobs.length})</Text>
+            <TouchableOpacity
+              style={[styles.tabBtn, tab === 'past' && styles.tabBtnActive]}
+              onPress={() => setTab('past')}
+            >
+              <Text style={[styles.tabBtnText, tab === 'past' && styles.tabBtnTextActive]}>
+                Completed ({pastJobs.length})
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -54,26 +63,32 @@ export default function JobsScreen() {
                       <Text style={styles.jobId}>{job.id}</Text>
                       <Text style={styles.jobTitle}>{job.title}</Text>
                     </View>
-                    <Badge variant="green">Live</Badge>
+                    <Badge variant={job.status === 'in_progress' ? 'green' : 'blue'}>
+                      {job.status === 'in_progress' ? 'Live' : 'Scheduled'}
+                    </Badge>
                   </View>
                   <View style={styles.divider} />
                   <View style={styles.row}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Avatar initials={job.initials} color={job.color} size={40} />
+                      <Avatar initials={job.techInitials} color={job.techColor} size={40} />
                       <View>
                         <Text style={styles.techName}>{job.tech}</Text>
-                        <Text style={styles.techSub}>ETA: {job.eta}</Text>
+                        <Text style={styles.techSub}>
+                          {job.eta ? `ETA: ${job.eta}` : job.date}
+                        </Text>
                       </View>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={styles.amount}>${job.amount}</Text>
-                      <Text style={styles.amountSub}>in escrow</Text>
+                      <Text style={styles.amountSub}>fixed price</Text>
                     </View>
                   </View>
 
-                  {/* Action Buttons */}
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                    <TouchableOpacity style={[styles.actionBtn, { flex: 2, backgroundColor: theme.accent }]} onPress={() => router.push('/tracking')}>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { flex: 2, backgroundColor: theme.accent }]}
+                      onPress={() => router.push('/tracking')}
+                    >
                       <Ionicons name="navigate" size={14} color={theme.bg} />
                       <Text style={[styles.actionBtnText, { color: theme.bg }]}>Track Live</Text>
                     </TouchableOpacity>
@@ -105,7 +120,6 @@ export default function JobsScreen() {
           {/* ── COMPLETED JOBS ── */}
           {tab === 'past' && (
             <>
-              {/* Summary */}
               <Card style={{ backgroundColor: 'rgba(0,212,170,0.05)', borderColor: 'rgba(0,212,170,0.2)', marginBottom: spacing.md }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
                   <View style={{ alignItems: 'center' }}>
@@ -113,11 +127,11 @@ export default function JobsScreen() {
                     <Text style={{ fontSize: 11, color: theme.textMuted }}>Completed</Text>
                   </View>
                   <View style={{ alignItems: 'center' }}>
-                    <Text style={{ fontSize: 22, fontWeight: '800', color: theme.text }}>${pastJobs.reduce((s, j) => s + j.amount, 0)}</Text>
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: theme.text }}>${totalSpent}</Text>
                     <Text style={{ fontSize: 11, color: theme.textMuted }}>Total Spent</Text>
                   </View>
                   <View style={{ alignItems: 'center' }}>
-                    <Text style={{ fontSize: 22, fontWeight: '800', color: '#F59E0B' }}>4.8 ⭐</Text>
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: '#F59E0B' }}>{avgRating} ⭐</Text>
                     <Text style={{ fontSize: 11, color: theme.textMuted }}>Avg Rating</Text>
                   </View>
                 </View>
@@ -126,7 +140,7 @@ export default function JobsScreen() {
               {pastJobs.map(job => (
                 <Card key={job.id}>
                   <View style={styles.row}>
-                    <View>
+                    <View style={{ flex: 1, paddingRight: 10 }}>
                       <Text style={styles.jobId}>{job.id} · {job.date}</Text>
                       <Text style={styles.jobTitle}>{job.title}</Text>
                     </View>
@@ -135,37 +149,50 @@ export default function JobsScreen() {
                   <View style={styles.divider} />
                   <View style={styles.row}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Avatar initials={job.initials} color={job.color} size={38} />
+                      <Avatar initials={job.techInitials} color={job.techColor} size={38} />
                       <Text style={styles.techName}>{job.tech}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={styles.amount}>${job.amount}</Text>
                       <View style={{ flexDirection: 'row', gap: 2, marginTop: 4 }}>
                         {[1,2,3,4,5].map(i => (
-                          <Ionicons key={i} name={i <= job.rating ? 'star' : 'star-outline'} size={11} color="#F59E0B" />
+                          <Ionicons
+                            key={i}
+                            name={i <= job.rating ? 'star' : 'star-outline'}
+                            size={11}
+                            color="#F59E0B"
+                          />
                         ))}
                       </View>
                     </View>
                   </View>
 
-                  {/* User Review */}
-                  <TouchableOpacity
-                    style={styles.reviewToggle}
-                    onPress={() => setExpandedReview(expandedReview === job.id ? null : job.id)}
-                  >
-                    <Ionicons name="chatbubble-outline" size={14} color={theme.accent} />
-                    <Text style={styles.reviewToggleText}>Your Review</Text>
-                    <Ionicons name={expandedReview === job.id ? 'chevron-up' : 'chevron-down'} size={14} color={theme.textMuted} />
-                  </TouchableOpacity>
+                  {job.review && (
+                    <TouchableOpacity
+                      style={styles.reviewToggle}
+                      onPress={() => setExpandedReview(expandedReview === job.id ? null : job.id)}
+                    >
+                      <Ionicons name="chatbubble-outline" size={14} color={theme.accent} />
+                      <Text style={styles.reviewToggleText}>Your Review</Text>
+                      <Ionicons
+                        name={expandedReview === job.id ? 'chevron-up' : 'chevron-down'}
+                        size={14}
+                        color={theme.textMuted}
+                      />
+                    </TouchableOpacity>
+                  )}
 
-                  {expandedReview === job.id && (
+                  {expandedReview === job.id && job.review && (
                     <View style={styles.reviewBox}>
                       <Text style={styles.reviewText}>"{job.review}"</Text>
                     </View>
                   )}
 
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                    <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: theme.bgElevated }]}>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { flex: 1, backgroundColor: theme.bgElevated }]}
+                      onPress={() => router.push('/technicians')}
+                    >
                       <Ionicons name="refresh" size={13} color={theme.accent} />
                       <Text style={[styles.actionBtnText, { color: theme.accent }]}>Rebook</Text>
                     </TouchableOpacity>
@@ -176,6 +203,14 @@ export default function JobsScreen() {
                   </View>
                 </Card>
               ))}
+
+              {pastJobs.length === 0 && (
+                <View style={styles.empty}>
+                  <Ionicons name="checkmark-circle-outline" size={48} color={theme.textDim} />
+                  <Text style={styles.emptyTitle}>No Completed Jobs Yet</Text>
+                  <Text style={styles.emptyText}>Your repair history will appear here</Text>
+                </View>
+              )}
             </>
           )}
         </View>
@@ -187,11 +222,7 @@ export default function JobsScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.bg },
   scrollView: { flex: 1 },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
-    paddingTop: Platform.OS === 'web' ? 67 : spacing.lg,
-  },
+  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, paddingTop: Platform.OS === 'web' ? 67 : spacing.lg },
   title: { fontSize: 26, fontWeight: '800', color: theme.text, marginBottom: spacing.xl },
   tabRow: { flexDirection: 'row', backgroundColor: theme.bgCard, borderRadius: borderRadius.lg, padding: 4, marginBottom: spacing.xl, gap: 4 },
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: borderRadius.md, alignItems: 'center' },

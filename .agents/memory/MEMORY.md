@@ -1,0 +1,2 @@
+- [App architecture](app-architecture.md) — UserContext is the single data source; all tabs read from useUser(); localStorage persistence on web.
+- [Recording wiring](recording-wiring.md) — Real MediaRecorder in diagnose.tsx; camera preview via DOM video element appended to View ref on web.
