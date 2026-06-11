@@ -8,12 +8,14 @@ import {
   SafeAreaView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge, Avatar } from '@/components/Card';
 import { useUser } from '@/contexts/UserContext';
+import { apiCompleteBooking } from '@/lib/api';
 
 const JOB_STEPS = [
   { id: 1, label: 'Booked',     sublabel: 'Jun 7, 10:30 AM',   done: true  },
@@ -25,8 +27,9 @@ const JOB_STEPS = [
 
 export default function TrackingScreen() {
   const router = useRouter();
-  const { jobs } = useUser();
+  const { jobs, refreshJobs } = useUser();
   const [eta, setEta] = useState(18);
+  const [approving, setApproving] = useState(false);
 
   const activeJob = jobs.find(j => j.status === 'in_progress') ?? jobs[0];
 
@@ -35,12 +38,23 @@ export default function TrackingScreen() {
     return () => clearInterval(t);
   }, []);
 
-  const handleApprove = () =>
-    Alert.alert(
-      'Payment Released! 🎉',
-      `Thank you! $${activeJob?.amount} has been released to ${activeJob?.tech}. Your 90-day warranty is now active.`,
-      [{ text: 'Done', onPress: () => router.back() }]
-    );
+  const handleApprove = async () => {
+    if (!activeJob) return;
+    setApproving(true);
+    try {
+      await apiCompleteBooking(activeJob.id);
+      await refreshJobs();
+      Alert.alert(
+        'Payment Released! 🎉',
+        `$${activeJob.amount} released to ${activeJob.tech}. Your 90-day warranty is now active.`,
+        [{ text: 'Done', onPress: () => router.back() }]
+      );
+    } catch {
+      Alert.alert('Error', 'Could not release payment. Please try again.');
+    } finally {
+      setApproving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -140,9 +154,18 @@ export default function TrackingScreen() {
               <Text style={styles.escrowNote}>
                 Released only when you approve. 90-day warranty included.
               </Text>
-              <TouchableOpacity style={styles.approveBtn} onPress={handleApprove}>
-                <Ionicons name="checkmark-circle" size={18} color={theme.bg} />
-                <Text style={styles.approveBtnText}>Approve & Release Payment</Text>
+              <TouchableOpacity
+                style={[styles.approveBtn, approving && { opacity: 0.6 }]}
+                onPress={handleApprove}
+                disabled={approving}
+              >
+                {approving
+                  ? <ActivityIndicator size="small" color={theme.bg} />
+                  : <Ionicons name="checkmark-circle" size={18} color={theme.bg} />
+                }
+                <Text style={styles.approveBtnText}>
+                  {approving ? 'Releasing…' : 'Approve & Release Payment'}
+                </Text>
               </TouchableOpacity>
             </Card>
           )}

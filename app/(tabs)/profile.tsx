@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge, Avatar, SectionHeader } from '@/components/Card';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const beforeAfterGallery = [
   { id: 1, appliance: 'Kitchen Fridge',   date: 'May 28', issue: 'Broken seal + mold',  saved: '$555', beforeColor: theme.danger,  afterColor: theme.success },
@@ -33,6 +34,7 @@ const menuItems = [
 
 export default function ProfileScreen() {
   const { profile, jobs, ecoStats, diagnoses, updateProfile } = useUser();
+  const { logout } = useAuth();
   const [activeSection, setActiveSection] = useState<'overview' | 'history' | 'gallery'>('overview');
   const [galleryDetail, setGalleryDetail] = useState<typeof beforeAfterGallery[0] | null>(null);
   const [editModal, setEditModal] = useState(false);
@@ -188,7 +190,7 @@ export default function ProfileScreen() {
                 ))}
               </Card>
 
-              <TouchableOpacity style={styles.logoutBtn}>
+              <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
                 <Ionicons name="log-out-outline" size={17} color={theme.danger} />
                 <Text style={styles.logoutText}>Sign Out</Text>
               </TouchableOpacity>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,23 +7,27 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Avatar, Badge } from '@/components/Card';
 import { useUser } from '@/contexts/UserContext';
-
-const nearbyTechs = [
-  { id: 1, name: 'Marcus Webb', specialty: 'Master Plumber',  rating: 4.9, initials: 'MW', color: theme.accentBlue, eta: 'Today 2–4 PM', price: 170 },
-  { id: 2, name: 'Sarah Chen',  specialty: 'HVAC Specialist', rating: 4.8, initials: 'SC', color: theme.accentWarm, eta: 'Today 4–6 PM', price: 165 },
-];
+import { apiGetTechnicians, TechnicianData } from '@/lib/api';
 
 const scoreColor = (s: number) => s >= 75 ? theme.success : s >= 55 ? theme.warning : theme.danger;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { profile, healthScore, systemScores, reminders, jobs, notifications, markNotificationsRead, dismissReminder } = useUser();
+  const { profile, healthScore, systemScores, reminders, jobs, notifications, isLoading, markNotificationsRead, dismissReminder } = useUser();
+  const [nearbyTechs, setNearbyTechs] = useState<TechnicianData[]>([]);
+
+  useEffect(() => {
+    apiGetTechnicians()
+      .then(({ technicians }) => setNearbyTechs(technicians.slice(0, 2)))
+      .catch(() => {});
+  }, []);
 
   const activeJob = jobs.find(j => j.status === 'in_progress');
   const activeReminders = reminders.filter(r => !r.dismissed);
@@ -37,6 +41,16 @@ export default function HomeScreen() {
     if (h < 17) return 'Good afternoon,';
     return 'Good evening,';
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={theme.accent} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>

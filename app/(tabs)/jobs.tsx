@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -16,7 +17,7 @@ import { useUser } from '@/contexts/UserContext';
 
 export default function JobsScreen() {
   const router = useRouter();
-  const { jobs } = useUser();
+  const { jobs, isLoading } = useUser();
   const [tab, setTab] = useState<'active' | 'past'>('active');
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
 
@@ -26,6 +27,16 @@ export default function JobsScreen() {
   const avgRating = pastJobs.length
     ? (pastJobs.reduce((s, j) => s + j.rating, 0) / pastJobs.length).toFixed(1)
     : '—';
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={theme.accent} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
