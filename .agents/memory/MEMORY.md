@@ -1,2 +1,3 @@
-- [App architecture](app-architecture.md) — UserContext is the single data source; all tabs read from useUser(); localStorage persistence on web.
-- [Recording wiring](recording-wiring.md) — Real MediaRecorder in diagnose.tsx; camera preview via DOM video element appended to View ref on web.
+- [FixFair dev architecture](fixfair-dev-arch.md) — single-port dev setup: Express :5000 proxies to Expo :8081 via built-in http module (no http-proxy-middleware)
+- [FixFair WebSocket proxy](fixfair-ws-proxy.md) — WS upgrade handler needs error guards on both socket + proxySocket or ECONNRESET crashes the server
+- [FixFair Expo CORS fix](fixfair-expo-cors.md) — must override origin + host headers when proxying to Expo bundler or CorsMiddleware rejects the request

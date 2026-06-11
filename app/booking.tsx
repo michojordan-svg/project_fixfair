@@ -9,12 +9,14 @@ import {
   TextInput,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge, Avatar } from '@/components/Card';
 import { useUser } from '@/contexts/UserContext';
+import { apiCreateBooking } from '@/lib/api';
 
 const timeSlots = [
   { id: 'today1', label: 'Today 2–4 PM',       available: true  },
@@ -64,13 +66,15 @@ const stepStyles = StyleSheet.create({
 
 export default function BookingScreen() {
   const router = useRouter();
-  const { profile } = useUser();
+  const { profile, refreshJobs } = useUser();
 
   const [step, setStep] = useState(1);
   const [selectedSlot, setSelectedSlot] = useState<string | null>('today1');
   const [address, setAddress] = useState(profile.address);
   const [instructions, setInstructions] = useState('');
   const [addressError, setAddressError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   const slotLabel = timeSlots.find(s => s.id === selectedSlot)?.label ?? 'Today 2–4 PM';
 
@@ -89,6 +93,30 @@ export default function BookingScreen() {
     }
     setAddressError('');
     setStep(2);
+  }
+
+  async function confirmBooking() {
+    setIsSubmitting(true);
+    setBookingError(null);
+    try {
+      await apiCreateBooking({
+        techName: 'Marcus Webb',
+        techInitials: 'MW',
+        techColor: theme.accentBlue,
+        scheduledSlot: slotLabel,
+        address: address.trim(),
+        instructions: instructions.trim() || undefined,
+        amount: 170,
+        category: 'Plumbing',
+      });
+      await refreshJobs();
+      setStep(3);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Booking failed. Please try again.';
+      setBookingError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -252,9 +280,27 @@ export default function BookingScreen() {
                 </Text>
               </Card>
 
-              <TouchableOpacity style={styles.primaryBtn} onPress={() => setStep(3)}>
-                <Ionicons name="lock-closed" size={18} color={theme.bg} />
-                <Text style={styles.primaryBtnText}>Confirm & Escrow $170</Text>
+              {!!bookingError && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8,
+                  backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 12,
+                  padding: 12, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)' }}>
+                  <Ionicons name="alert-circle" size={16} color="#EF4444" />
+                  <Text style={{ color: '#EF4444', fontSize: 13, flex: 1 }}>{bookingError}</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, isSubmitting && { opacity: 0.6 }]}
+                onPress={confirmBooking}
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? <ActivityIndicator color={theme.bg} size="small" />
+                  : <>
+                      <Ionicons name="lock-closed" size={18} color={theme.bg} />
+                      <Text style={styles.primaryBtnText}>Confirm & Escrow $170</Text>
+                    </>
+                }
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.secondaryBtn} onPress={() => setStep(1)}>

@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge } from '@/components/Card';
-import { useUser } from '@/contexts/UserContext';
+import { useUser, DiagnosisRecord } from '@/contexts/UserContext';
 
 type DiagnoseMode = 'video' | 'chat';
 
@@ -75,6 +75,8 @@ export default function DiagnoseScreen() {
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingDone, setRecordingDone] = useState(false);
+  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisRecord | null>(null);
+  const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'ai', text: "👋 Hi! I'm your Virtual Appliance Doctor. Describe any home problem and I'll diagnose it, estimate costs, and recommend whether to repair or replace. What's going wrong?" }
@@ -183,18 +185,23 @@ export default function DiagnoseScreen() {
   };
 
   const finalizeDiagnosis = (mediaUrl?: string) => {
-    setTimeout(() => {
-      const cat = categories.find(c => c.id === selectedCategory);
-      addDiagnosis({
-        id: `DX-${Date.now()}`,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        category: cat?.label ?? 'General',
-        issue: 'Leaking P-Trap Joint',
-        confidence: 94,
-        fixedPrice: 170,
-        ...(inputMode === 'audio' ? { audioUrl: mediaUrl } : { videoUrl: mediaUrl }),
-      });
-      setStep(3);
+    const cat = categories.find(c => c.id === selectedCategory);
+    const categoryLabel = cat?.label ?? 'General';
+    const description = mediaUrl
+      ? `${inputMode === 'video' ? 'Video' : 'Voice'} recording submitted for analysis. Category: ${categoryLabel}.`
+      : `User reported issue in category: ${categoryLabel}.`;
+
+    setDiagnosisError(null);
+    setTimeout(async () => {
+      try {
+        const record = await addDiagnosis(categoryLabel, description);
+        setDiagnosisResult(record);
+        setStep(3);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Diagnosis failed';
+        setDiagnosisError(msg);
+        setStep(0);
+      }
     }, 2500);
   };
 
@@ -225,6 +232,8 @@ export default function DiagnoseScreen() {
     setRecordingTime(0);
     setRecordingDone(false);
     setPermissionDenied(false);
+    setDiagnosisResult(null);
+    setDiagnosisError(null);
   };
 
   return (
@@ -264,6 +273,13 @@ export default function DiagnoseScreen() {
                       <Text style={styles.permissionText}>
                         Camera/microphone access was denied. Please allow access in your browser settings and try again.
                       </Text>
+                    </View>
+                  )}
+
+                  {!!diagnosisError && (
+                    <View style={[styles.permissionBanner, { borderColor: 'rgba(239,68,68,0.3)' }]}>
+                      <Ionicons name="alert-circle" size={16} color={theme.danger} />
+                      <Text style={styles.permissionText}>{diagnosisError}. Please try again.</Text>
                     </View>
                   )}
 
@@ -388,7 +404,7 @@ export default function DiagnoseScreen() {
               )}
 
               {/* Step 3 — Result */}
-              {step === 3 && (
+              {step === 3 && diagnosisResult && (
                 <>
                   <View style={styles.resultHeader}>
                     <View style={styles.resultIconWrap}>
@@ -396,7 +412,9 @@ export default function DiagnoseScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.resultTitle}>Fault Identified</Text>
-                      <Text style={styles.resultConfidence}>94% confidence · {categories.find(c => c.id === selectedCategory)?.label ?? 'General'}</Text>
+                      <Text style={styles.resultConfidence}>
+                        {diagnosisResult.confidence}% confidence · {diagnosisResult.category}
+                      </Text>
                     </View>
                     <Badge variant="green">AI Result</Badge>
                   </View>
@@ -414,23 +432,38 @@ export default function DiagnoseScreen() {
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <View style={{ flex: 1, paddingRight: 12 }}>
                         <Text style={styles.labelSm}>Detected Issue</Text>
-                        <Text style={styles.issueName}>Leaking P-Trap Joint</Text>
-                        <Text style={styles.issueDesc}>Worn gasket or loose compression fitting</Text>
+                        <Text style={styles.issueName}>{diagnosisResult.issue}</Text>
+                        <Text style={styles.issueDesc}>
+                          {diagnosisResult.severity ? `Severity: ${diagnosisResult.severity}` : diagnosisResult.category}
+                        </Text>
                       </View>
                       <View style={{ alignItems: 'center', backgroundColor: 'rgba(245,158,11,0.1)', borderRadius: 10, padding: 8 }}>
-                        <Text style={{ fontSize: 26, fontWeight: '800', color: theme.warning, lineHeight: 30 }}>62</Text>
-                        <Text style={{ fontSize: 9, color: theme.textMuted }}>Health</Text>
+                        <Text style={{ fontSize: 26, fontWeight: '800', color: theme.warning, lineHeight: 30 }}>
+                          {diagnosisResult.confidence}
+                        </Text>
+                        <Text style={{ fontSize: 9, color: theme.textMuted }}>Score</Text>
                       </View>
                     </View>
+                    {diagnosisResult.immediateSteps && diagnosisResult.immediateSteps.length > 0 && (
+                      <View style={{ marginTop: 10, gap: 4 }}>
+                        <Text style={[styles.labelSm, { marginBottom: 4 }]}>Immediate Steps</Text>
+                        {diagnosisResult.immediateSteps.slice(0, 3).map((step, i) => (
+                          <View key={i} style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-start' }}>
+                            <Text style={{ fontSize: 12, color: theme.accent, fontWeight: '700' }}>{i + 1}.</Text>
+                            <Text style={{ fontSize: 12, color: theme.textMuted, flex: 1, lineHeight: 17 }}>{step}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                   </Card>
 
                   <Card style={{ marginBottom: 10 }}>
                     <Text style={styles.labelSm}>💰 Fixed Price Breakdown</Text>
                     <View style={{ marginTop: 10, gap: 8 }}>
                       {[
-                        { label: 'Labour', value: '$120' },
-                        { label: 'Parts & materials', value: '$28' },
-                        { label: 'Platform fee (15%)', value: '$22' },
+                        { label: 'Labour',            value: `$${Math.round(diagnosisResult.fixedPrice * 0.7)}` },
+                        { label: 'Parts & materials',  value: `$${Math.round(diagnosisResult.fixedPrice * 0.17)}` },
+                        { label: 'Platform fee (13%)', value: `$${Math.round(diagnosisResult.fixedPrice * 0.13)}` },
                       ].map(row => (
                         <View key={row.label} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                           <Text style={{ fontSize: 13, color: theme.textMuted }}>{row.label}</Text>
@@ -441,7 +474,7 @@ export default function DiagnoseScreen() {
                     <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 10 }} />
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text }}>Fixed Total</Text>
-                      <Text style={{ fontSize: 22, fontWeight: '800', color: theme.accent }}>$170</Text>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: theme.accent }}>${diagnosisResult.fixedPrice}</Text>
                     </View>
                     <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 8 }}>
                       🔒 Price locked — what you see is what you pay.
@@ -451,21 +484,32 @@ export default function DiagnoseScreen() {
                   <Card style={{ borderColor: 'rgba(59,130,246,0.2)', marginBottom: 10 }}>
                     <Text style={[styles.labelSm, { marginBottom: 10 }]}>🔄 Repair vs Replace</Text>
                     <View style={[styles.rvrRow, { borderColor: 'rgba(16,185,129,0.25)', backgroundColor: 'rgba(16,185,129,0.05)' }]}>
-                      <Ionicons name="build" size={18} color={theme.success} />
+                      <Ionicons name="build" size={18} color={diagnosisResult.canDIY ? theme.accentBlue : theme.success} />
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.success }}>✅ Repair — Recommended</Text>
-                        <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>Part available · Appliance is only 4 yrs old</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: diagnosisResult.canDIY ? theme.accentBlue : theme.success }}>
+                          {diagnosisResult.canDIY ? '🛠️ DIY Possible — or hire a tech' : '✅ Professional Repair — Recommended'}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>
+                          {diagnosisResult.estimatedTime ?? 'Est. same-day repair'}
+                        </Text>
                       </View>
-                      <Text style={{ fontSize: 15, fontWeight: '800', color: theme.success }}>$85–120</Text>
+                      {diagnosisResult.estimatedCost && (
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: theme.success }}>
+                          ${diagnosisResult.estimatedCost.min}–{diagnosisResult.estimatedCost.max}
+                        </Text>
+                      )}
                     </View>
-                    <View style={styles.rvrRow}>
-                      <Ionicons name="cart" size={18} color={theme.textDim} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textMuted }}>Replace</Text>
-                        <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }}>Not economical · 6+ yrs of life left</Text>
+                    {diagnosisResult.risks && diagnosisResult.risks.length > 0 && (
+                      <View style={styles.rvrRow}>
+                        <Ionicons name="warning" size={18} color={theme.danger} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: theme.danger }}>Risks if Ignored</Text>
+                          <Text style={{ fontSize: 12, color: theme.textMuted, marginTop: 2 }} numberOfLines={2}>
+                            {diagnosisResult.risks[0]}
+                          </Text>
+                        </View>
                       </View>
-                      <Text style={{ fontSize: 15, fontWeight: '800', color: theme.textMuted }}>$400–800</Text>
-                    </View>
+                    )}
                   </Card>
 
                   <Card style={{ backgroundColor: 'rgba(16,185,129,0.06)', borderColor: 'rgba(16,185,129,0.2)', marginBottom: 10 }}>
@@ -476,7 +520,9 @@ export default function DiagnoseScreen() {
                         <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>Avoiding landfill & manufacturing waste</Text>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ fontSize: 15, fontWeight: '800', color: theme.success }}>$315</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: theme.success }}>
+                          ${Math.round(diagnosisResult.fixedPrice * 1.8)}
+                        </Text>
                         <Text style={{ fontSize: 10, color: theme.textMuted }}>12 kg CO₂</Text>
                       </View>
                     </View>
