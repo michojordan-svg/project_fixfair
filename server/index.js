@@ -18,6 +18,7 @@ app.use('/api/profile',     require('./routes/profile'));
 app.use('/api/diagnoses',   require('./routes/diagnoses'));
 app.use('/api/bookings',    require('./routes/bookings'));
 app.use('/api/technicians', require('./routes/technicians'));
+app.use('/api/appliances',  require('./routes/appliances'));
 
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ ok: true, mode: isDev ? 'dev' : 'prod' }));

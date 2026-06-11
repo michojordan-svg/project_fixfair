@@ -118,6 +118,22 @@ export async function apiGetTechnicians() {
   return request<{ technicians: TechnicianData[] }>('GET', '/technicians');
 }
 
+// ── Appliances ────────────────────────────────────────────────
+export async function apiGetAppliances() {
+  return request<{ appliances: ApplianceData[] }>('GET', '/appliances');
+}
+
+export async function apiAddAppliance(payload: {
+  name: string; category: string; brand?: string; model?: string;
+  purchased_date?: string; warranty_expiry?: string; notes?: string; replace_cost?: number;
+}) {
+  return request<{ appliance: ApplianceData }>('POST', '/appliances', payload);
+}
+
+export async function apiDeleteAppliance(dbId: number) {
+  return request<{ ok: boolean }>('DELETE', `/appliances/${dbId}`);
+}
+
 // ── Types ─────────────────────────────────────────────────────
 export interface UserData {
   id: string;
@@ -162,6 +178,29 @@ export interface JobData {
   rating: number;
   eta?: string;
   review?: string;
+}
+
+export interface ApplianceData {
+  id: string;
+  dbId: number;
+  name: string;
+  category: string;
+  brand: string;
+  model: string;
+  icon: string;
+  color: string;
+  age: string;
+  health: number;
+  healthLabel: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+  purchased: string;
+  warrantyExpiry: string;
+  warrantyDaysLeft: number;
+  faults: number;
+  lastService: string;
+  repairCost: number;
+  replaceCost: number;
+  notes: string;
+  qrCode: string;
 }
 
 export interface TechnicianData {

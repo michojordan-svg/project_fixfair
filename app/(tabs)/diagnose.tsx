@@ -73,6 +73,7 @@ export default function DiagnoseScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<'video' | 'voice'>('video');
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingDone, setRecordingDone] = useState(false);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisRecord | null>(null);
@@ -109,15 +110,16 @@ export default function DiagnoseScreen() {
       const node = videoContainerRef.current as unknown as HTMLDivElement | null;
       if (!node) return;
       const existing = node.querySelector('video');
-      if (existing) return;
+      if (existing) { existing.srcObject = stream; return; }
       const videoEl = document.createElement('video');
       videoEl.srcObject = stream;
       videoEl.autoplay = true;
       videoEl.muted = true;
       videoEl.playsInline = true;
-      videoEl.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:16px;';
+      videoEl.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:16px;z-index:1;';
       node.style.position = 'relative';
       node.appendChild(videoEl);
+      setCameraActive(true);
     }, 200);
   }, []);
 
@@ -209,6 +211,7 @@ export default function DiagnoseScreen() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
     stopStream();
+    setCameraActive(false);
     setRecordingTime(0);
     setStep(0);
   };
@@ -340,16 +343,25 @@ export default function DiagnoseScreen() {
                 <>
                   {inputMode === 'video' ? (
                     <View style={styles.recordingArea} ref={videoContainerRef}>
-                      <View style={styles.recBadge}>
+                      <View style={[styles.recBadge, { zIndex: 2 }]}>
                         <Text style={styles.recBadgeText}>● REC {formatTime(recordingTime)}</Text>
                       </View>
-                      <View style={styles.cameraPlaceholder}>
-                        <View style={styles.recordButton}>
-                          <View style={styles.recordButtonInner} />
+                      {!cameraActive && (
+                        <View style={styles.cameraPlaceholder}>
+                          <View style={styles.recordButton}>
+                            <View style={styles.recordButtonInner} />
+                          </View>
+                          <Text style={styles.recordingText}>Starting camera…</Text>
+                          <Text style={styles.recordingHint}>Allow camera access if prompted</Text>
                         </View>
-                        <Text style={styles.recordingText}>Recording… {formatTime(recordingTime)}</Text>
-                        <Text style={styles.recordingHint}>Point camera at the issue</Text>
-                      </View>
+                      )}
+                      {cameraActive && (
+                        <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center', zIndex: 2 }}>
+                          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600', textShadowColor: '#000', textShadowRadius: 4 }}>
+                            🔴 Recording {formatTime(recordingTime)} — point at the issue
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   ) : (
                     <View style={[styles.recordingArea, { backgroundColor: 'rgba(139,92,246,0.05)', borderColor: 'rgba(139,92,246,0.3)' }]}>

@@ -4,7 +4,8 @@ import {
   apiGetProfile, apiUpdateProfile,
   apiGetDiagnoses, apiCreateDiagnosis,
   apiGetBookings,
-  UserData, DiagnosisData, JobData,
+  apiGetAppliances, apiAddAppliance, apiDeleteAppliance,
+  UserData, DiagnosisData, JobData, ApplianceData,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -50,24 +51,7 @@ export interface Job {
   review?: string;
 }
 
-export interface Appliance {
-  id: string;
-  name: string;
-  category: string;
-  icon: string;
-  color: string;
-  age: string;
-  health: number;
-  healthLabel: 'Excellent' | 'Good' | 'Fair' | 'Poor';
-  purchased: string;
-  warrantyExpiry: string;
-  warrantyDaysLeft: number;
-  faults: number;
-  lastService: string;
-  repairCost: number;
-  replaceCost: number;
-  qrCode: string;
-}
+export type Appliance = ApplianceData;
 
 export interface DiagnosisRecord {
   id: string;
@@ -103,6 +87,8 @@ interface UserContextType {
   addDiagnosis: (category: string, description: string) => Promise<DiagnosisRecord>;
   refreshJobs: () => Promise<void>;
   markNotificationsRead: () => void;
+  addAppliance: (payload: { name: string; category: string; brand?: string; model?: string; purchased_date?: string; warranty_expiry?: string; notes?: string; replace_cost?: number }) => Promise<void>;
+  deleteAppliance: (dbId: number) => Promise<void>;
 }
 
 // ── Static/semi-static data ───────────────────────────────────
@@ -178,6 +164,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [reminders, setReminders] = useState<Reminder[]>(DEFAULT_REMINDERS);
   const [diagnoses, setDiagnoses] = useState<DiagnosisRecord[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [appliances, setAppliances] = useState<Appliance[]>([]);
   const [notifications, setNotifications] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -195,6 +182,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       apiGetProfile().then(({ profile: p }) => setProfile(userDataToProfile(p))).catch(() => {}),
       apiGetDiagnoses().then(({ diagnoses: d }) => setDiagnoses(d.map(diagnosisDataToRecord))).catch(() => {}),
       apiGetBookings().then(({ jobs: j }) => setJobs(j)).catch(() => {}),
+      apiGetAppliances().then(({ appliances: a }) => setAppliances(a)).catch(() => {}),
     ]).finally(() => setIsLoading(false));
   }, [isAuthenticated]);
 
@@ -230,9 +218,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const markNotificationsRead = useCallback(() => setNotifications(0), []);
 
+  const addAppliance = useCallback(async (payload: Parameters<typeof apiAddAppliance>[0]) => {
+    const { appliance } = await apiAddAppliance(payload);
+    setAppliances(prev => [appliance, ...prev]);
+  }, []);
+
+  const deleteAppliance = useCallback(async (dbId: number) => {
+    await apiDeleteAppliance(dbId);
+    setAppliances(prev => prev.filter(a => a.dbId !== dbId));
+  }, []);
+
   const systemScores = DEFAULT_SYSTEM_SCORES;
   const healthScore = Math.round(systemScores.reduce((s, x) => s + x.score, 0) / systemScores.length);
-  const appliances = DEFAULT_APPLIANCES;
   const ecoStats = {
     moneySaved: jobs.filter(j => j.status === 'completed').reduce((s, j) => s + j.amount * 0.3, 0) | 0,
     co2Reduced: jobs.filter(j => j.status === 'completed').length * 12,
@@ -245,6 +242,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       profile, systemScores, healthScore, reminders, jobs, appliances,
       diagnoses, notifications, ecoStats, isLoading,
       updateProfile, dismissReminder, addDiagnosis, refreshJobs, markNotificationsRead,
+      addAppliance, deleteAppliance,
     }}>
       {children}
     </UserContext.Provider>
