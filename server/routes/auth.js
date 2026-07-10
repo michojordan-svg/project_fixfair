@@ -1,7 +1,7 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { signToken, requireAuth } = require('../middleware/auth');
+const { supabaseAdmin, supabaseAnon } = require('../supabase');
 
 const router = express.Router();
 
@@ -14,19 +14,31 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
   }
 
+  const normalizedEmail = email.toLowerCase();
+
   try {
-    const exists = await db.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
-    if (exists.rows.length > 0) {
-      return res.status(409).json({ error: 'An account with this email already exists' });
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email: normalizedEmail,
+      password,
+      email_confirm: true,
+      user_metadata: { name: name.trim() },
+    });
+
+    if (error) {
+      if (/already been registered|already exists/i.test(error.message || '')) {
+        return res.status(409).json({ error: 'An account with this email already exists' });
+      }
+      console.error('Supabase createUser error:', error);
+      return res.status(500).json({ error: 'Registration failed, please try again' });
     }
 
-    const hash = await bcrypt.hash(password, 12);
+    const supaUser = data.user;
     const memberSince = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     const result = await db.query(
-      `INSERT INTO users (email, password_hash, name, member_since)
+      `INSERT INTO users (id, email, name, member_since)
        VALUES ($1, $2, $3, $4) RETURNING id, email, name, phone, address, plan, member_since`,
-      [email.toLowerCase(), hash, name.trim(), memberSince]
+      [supaUser.id, normalizedEmail, name.trim(), memberSince]
     );
 
     const user = result.rows[0];
@@ -45,22 +57,39 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
+  const normalizedEmail = email.toLowerCase();
+
   try {
-    const result = await db.query(
-      'SELECT id, email, password_hash, name, phone, address, plan, member_since FROM users WHERE email = $1',
-      [email.toLowerCase()]
+    const { data, error } = await supabaseAnon.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
+    if (error || !data?.user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const supaUser = data.user;
+
+    let result = await db.query(
+      'SELECT id, email, name, phone, address, plan, member_since FROM users WHERE id = $1',
+      [supaUser.id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      // Edge case: user exists in Supabase but not yet synced locally
+      const memberSince = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const name = supaUser.user_metadata?.name || normalizedEmail.split('@')[0];
+      result = await db.query(
+        `INSERT INTO users (id, email, name, member_since)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
+         RETURNING id, email, name, phone, address, plan, member_since`,
+        [supaUser.id, normalizedEmail, name, memberSince]
+      );
     }
 
     const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
     const token = signToken(user.id, user.email);
     return res.json({ token, user: formatUser(user) });
   } catch (err) {
