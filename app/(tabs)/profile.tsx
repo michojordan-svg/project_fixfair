@@ -10,9 +10,9 @@ import {
   Modal,
   TextInput,
   Switch,
-  Clipboard,
   Alert,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
@@ -533,7 +533,7 @@ export default function ProfileScreen() {
                     <Text style={{ fontSize: 12, color: theme.textMuted, marginBottom: 8 }}>Your Referral Code</Text>
                     <TouchableOpacity
                       style={{ backgroundColor: theme.bgElevated, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: 'rgba(0,212,170,0.3)', padding: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg }}
-                      onPress={() => { try { Clipboard.setString(REFERRAL_CODE); Alert.alert('Copied!', 'Referral code copied to clipboard.'); } catch {} }}
+                      onPress={async () => { try { await Clipboard.setStringAsync(REFERRAL_CODE); Alert.alert('Copied!', 'Referral code copied to clipboard.'); } catch {} }}
                     >
                       <Text style={{ fontSize: 18, fontWeight: '800', color: theme.accent, letterSpacing: 2 }}>{REFERRAL_CODE}</Text>
                       <Ionicons name="copy-outline" size={20} color={theme.accent} />

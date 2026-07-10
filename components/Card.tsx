@@ -31,6 +31,7 @@ export function Card({ children, style, onPress, borderColor }: CardProps) {
 interface BadgeProps {
   variant: BadgeVariant;
   children: React.ReactNode;
+  style?: any;
 }
 
 const badgeColors: Record<BadgeVariant, { bg: string; text: string }> = {
@@ -40,10 +41,10 @@ const badgeColors: Record<BadgeVariant, { bg: string; text: string }> = {
   purple: { bg: 'rgba(139,92,246,0.15)',  text: '#8B5CF6' },
 };
 
-export function Badge({ variant, children }: BadgeProps) {
+export function Badge({ variant, children, style }: BadgeProps) {
   const colors = badgeColors[variant];
   return (
-    <View style={[styles.badge, { backgroundColor: colors.bg }]}>
+    <View style={[styles.badge, { backgroundColor: colors.bg }, style]}>
       <Text style={[styles.badgeText, { color: colors.text }]}>{children}</Text>
     </View>
   );
