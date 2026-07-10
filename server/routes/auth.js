@@ -98,6 +98,25 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !/\S+@\S+\.\S+/.test(email)) {
+    return res.status(400).json({ error: 'A valid email is required' });
+  }
+
+  const normalizedEmail = email.toLowerCase();
+
+  try {
+    await supabaseAnon.auth.resetPasswordForEmail(normalizedEmail);
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    // fall through — always return success to avoid leaking which emails exist
+  }
+
+  // Always respond success (don't reveal whether the email is registered)
+  return res.json({ ok: true, message: 'If an account exists for that email, a reset link has been sent.' });
+});
+
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const result = await db.query(

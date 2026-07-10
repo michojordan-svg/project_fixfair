@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, ScrollView, Platform,
-  ActivityIndicator, KeyboardAvoidingView,
+  ActivityIndicator, KeyboardAvoidingView, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiForgotPassword } from '@/lib/api';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 
 type Tab = 'login' | 'register';
@@ -19,6 +20,23 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotStatus, setForgotStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
+  async function handleForgotPassword() {
+    if (!forgotEmail.trim() || !/\S+@\S+\.\S+/.test(forgotEmail)) {
+      setForgotStatus('error');
+      return;
+    }
+    setForgotStatus('sending');
+    try {
+      await apiForgotPassword(forgotEmail.trim());
+      setForgotStatus('sent');
+    } catch {
+      setForgotStatus('error');
+    }
+  }
 
   function validate(): boolean {
     const errs: Record<string, string> = {};
@@ -146,6 +164,14 @@ export default function AuthScreen() {
                 </TouchableOpacity>
               </View>
               {!!fieldErrors.password && <Text style={s.fieldErr}>{fieldErrors.password}</Text>}
+              {tab === 'login' && (
+                <TouchableOpacity
+                  style={s.forgotLink}
+                  onPress={() => { setForgotEmail(email); setForgotStatus('idle'); setForgotOpen(true); }}
+                >
+                  <Text style={s.forgotLinkText}>Forgot password?</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <TouchableOpacity
@@ -181,6 +207,63 @@ export default function AuthScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={forgotOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setForgotOpen(false)}
+      >
+        <View style={s.modalBackdrop}>
+          <View style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Reset your password</Text>
+              <TouchableOpacity onPress={() => setForgotOpen(false)}>
+                <Ionicons name="close" size={22} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {forgotStatus === 'sent' ? (
+              <View style={{ alignItems: 'center', paddingVertical: spacing.md }}>
+                <Ionicons name="checkmark-circle" size={40} color={theme.accent} />
+                <Text style={s.modalSentText}>
+                  If an account exists for {forgotEmail.trim()}, a reset link has been sent.
+                </Text>
+                <TouchableOpacity style={[s.submitBtn, { marginTop: spacing.lg, width: '100%' }]} onPress={() => setForgotOpen(false)}>
+                  <Text style={s.submitText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <Text style={s.modalSub}>Enter your account email and we'll send a reset link.</Text>
+                <View style={s.field}>
+                  <TextInput
+                    style={[s.input, forgotStatus === 'error' && s.inputErr]}
+                    placeholder="you@email.com"
+                    placeholderTextColor={theme.textDim}
+                    value={forgotEmail}
+                    onChangeText={v => { setForgotEmail(v); setForgotStatus('idle'); }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  {forgotStatus === 'error' && <Text style={s.fieldErr}>Please enter a valid email</Text>}
+                </View>
+                <TouchableOpacity
+                  style={[s.submitBtn, forgotStatus === 'sending' && s.submitBtnDisabled]}
+                  onPress={handleForgotPassword}
+                  disabled={forgotStatus === 'sending'}
+                >
+                  {forgotStatus === 'sending' ? (
+                    <ActivityIndicator color={theme.bg} size="small" />
+                  ) : (
+                    <Text style={s.submitText}>Send Reset Link</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -233,6 +316,24 @@ const s = StyleSheet.create({
     position: 'absolute', right: 14, top: 0, bottom: 0,
     justifyContent: 'center', alignItems: 'center',
   },
+  forgotLink: { alignSelf: 'flex-end', marginTop: 8 },
+  forgotLinkText: { fontSize: 13, fontWeight: '600', color: theme.accent },
+  modalBackdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center', alignItems: 'center', padding: spacing.xl,
+  },
+  modalCard: {
+    width: '100%', maxWidth: 380,
+    backgroundColor: theme.bgCard, borderRadius: borderRadius.xl,
+    padding: spacing.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: theme.text },
+  modalSub: { fontSize: 13, color: theme.textMuted, marginBottom: spacing.md },
+  modalSentText: { fontSize: 14, color: theme.text, textAlign: 'center', marginTop: 12, lineHeight: 20 },
   submitBtn: {
     backgroundColor: theme.accent,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

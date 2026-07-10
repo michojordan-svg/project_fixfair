@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { apiLogin, apiRegister, apiGetMe, apiLogout, hasToken, UserData } from '@/lib/api';
+import { apiLogin, apiRegister, apiGetMe, apiLogout, hasToken, onSessionExpired, UserData } from '@/lib/api';
 
 interface AuthState {
   user: UserData | null;
@@ -26,6 +26,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
+    onSessionExpired(() => {
+      setState({ user: null, isLoading: false, isAuthenticated: false, error: 'Your session expired — please sign in again' });
+    });
+
     if (!hasToken()) {
       setState(s => ({ ...s, isLoading: false }));
       return;

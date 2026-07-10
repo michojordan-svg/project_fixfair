@@ -27,6 +27,13 @@ function clearToken() {
   } catch {}
 }
 
+type SessionExpiredListener = () => void;
+let sessionExpiredListener: SessionExpiredListener | null = null;
+
+export function onSessionExpired(listener: SessionExpiredListener) {
+  sessionExpiredListener = listener;
+}
+
 async function request<T = unknown>(
   method: string,
   path: string,
@@ -45,6 +52,12 @@ async function request<T = unknown>(
   });
 
   const data = await res.json().catch(() => ({ error: 'Unexpected server response' }));
+
+  if (res.status === 401 && token && path !== '/auth/login' && path !== '/auth/register') {
+    // Session expired or invalid mid-use — force logout so the UI reflects reality
+    clearToken();
+    sessionExpiredListener?.();
+  }
 
   if (!res.ok) {
     throw new Error((data as { error?: string }).error || `Request failed (${res.status})`);
@@ -72,6 +85,10 @@ export async function apiGetMe() {
 
 export function apiLogout() {
   clearToken();
+}
+
+export async function apiForgotPassword(email: string) {
+  return request<{ ok: boolean; message: string }>('POST', '/auth/forgot-password', { email });
 }
 
 export function hasToken(): boolean {
