@@ -1,0 +1,596 @@
+Here's a comprehensive prompt you can give to your AI coding agent (such as Claude Code, Cursor, Gemini CLI, Roo Code, Codex, etc.). It instructs the agent to fully audit, fix, and validate the app rather than just making superficial changes.
+
+# MASTER PROMPT – Complete Production Audit, Authentication Repair, Bug Fixing & App Stabilization
+
+You are a senior software engineer, software architect, QA engineer, security engineer, DevOps engineer, mobile engineer, and UI/UX expert working together.
+
+Your task is NOT to make small fixes. Your mission is to perform a complete production-ready audit of the entire application and deliver a stable, fully functional app.
+
+## PRIMARY GOALS
+
+* Repair every broken feature.
+* Remove every placeholder.
+* Eliminate all compile errors.
+* Eliminate all runtime errors.
+* Eliminate all warnings where possible.
+* Ensure every screen works.
+* Ensure authentication works perfectly.
+* Ensure audio recording works.
+* Ensure video recording works.
+* Ensure navigation works.
+* Ensure data is correctly stored and retrieved.
+* Ensure the project is production-ready.
+
+---
+
+# STEP 1 – COMPLETE PROJECT AUDIT
+
+Perform a complete scan of the entire codebase.
+
+Inspect:
+
+* Frontend
+* Backend
+* API routes
+* Database
+* Authentication
+* Storage
+* State management
+* Permissions
+* Configuration files
+* Environment variables
+* Dependencies
+* Build settings
+* Assets
+* Media
+* Navigation
+* Forms
+* Validation
+* Error handling
+* Logging
+
+Create a dependency graph and identify every broken connection.
+
+---
+
+# STEP 2 – FIX AUTHENTICATION
+
+Authentication must be production-ready.
+
+Verify and repair:
+
+* Sign Up
+* Login
+* Logout
+* Forgot Password
+* Reset Password
+* Email Verification (if implemented)
+* Session Persistence
+* Token Refresh
+* Secure Token Storage
+* User Profile Loading
+* Authentication Guards
+* Protected Routes
+* Auto Login
+* Auto Logout
+* Expired Session Handling
+* Invalid Credentials Handling
+* Network Failure Handling
+
+Authentication must work on every supported platform.
+
+No fake users.
+
+No mock authentication.
+
+No placeholder authentication.
+
+No bypasses.
+
+---
+
+# STEP 3 – REMOVE ALL PLACEHOLDERS
+
+Search the entire project for:
+
+TODO
+
+FIXME
+
+Coming Soon
+
+Placeholder
+
+Dummy
+
+Mock
+
+Sample
+
+Test Data
+
+Lorem Ipsum
+
+Temporary Code
+
+Fake API
+
+Console Logs
+
+Unused Components
+
+Dead Code
+
+Incomplete Screens
+
+Incomplete Buttons
+
+Incomplete Navigation
+
+Replace every placeholder with real functionality.
+
+Nothing should remain unfinished.
+
+---
+
+# STEP 4 – FIX NAVIGATION
+
+Verify:
+
+Every button opens the correct screen.
+
+Every screen loads.
+
+No blank pages.
+
+No crashes.
+
+No broken links.
+
+No infinite loading.
+
+Back navigation works correctly.
+
+Deep links work if applicable.
+
+---
+
+# STEP 5 – DATABASE VALIDATION
+
+Verify:
+
+Create
+
+Read
+
+Update
+
+Delete
+
+Realtime updates
+
+Indexes
+
+Relationships
+
+Foreign keys
+
+Security rules
+
+Permissions
+
+Storage buckets
+
+Data validation
+
+Error handling
+
+Retry logic
+
+Offline handling (if supported)
+
+Repair any issue found.
+
+---
+
+# STEP 6 – AUDIO RECORDING
+
+This is a critical feature.
+
+Audit everything required for recording.
+
+Verify:
+
+Permissions
+
+Microphone access
+
+Recording starts
+
+Recording pauses
+
+Recording resumes
+
+Recording stops
+
+File saving
+
+Playback
+
+File upload
+
+File deletion
+
+Audio quality
+
+Error handling
+
+Background interruptions
+
+Storage paths
+
+File naming
+
+Recovery after interruption
+
+Recording should work on all supported platforms.
+
+No crashes.
+
+No permission issues.
+
+No corrupted files.
+
+---
+
+# STEP 7 – VIDEO RECORDING
+
+This is another critical feature.
+
+Audit everything.
+
+Verify:
+
+Camera permissions
+
+Microphone permissions
+
+Front camera
+
+Back camera
+
+Video recording
+
+Pause
+
+Resume
+
+Stop
+
+Preview
+
+Playback
+
+Saving
+
+Compression
+
+Upload
+
+Storage
+
+Deletion
+
+Orientation changes
+
+Background interruptions
+
+Low storage handling
+
+Camera switching
+
+Resolution selection
+
+Recording duration
+
+Video integrity
+
+Recording must function correctly without crashing.
+
+---
+
+# STEP 8 – MEDIA STORAGE
+
+Verify:
+
+Audio uploads
+
+Video uploads
+
+Image uploads
+
+Download
+
+Caching
+
+Deletion
+
+Synchronization
+
+Offline recovery
+
+Storage permissions
+
+Duplicate prevention
+
+Corrupted file handling
+
+---
+
+# STEP 9 – UI/UX REVIEW
+
+Inspect every screen.
+
+Verify:
+
+Responsive layouts
+
+No overlapping widgets
+
+No clipped text
+
+No overflow
+
+No pixel overflow
+
+No missing icons
+
+No broken images
+
+No invisible buttons
+
+Consistent spacing
+
+Consistent typography
+
+Dark mode compatibility (if supported)
+
+Accessibility
+
+Loading indicators
+
+Empty states
+
+Error states
+
+Success states
+
+Animations
+
+Transitions
+
+---
+
+# STEP 10 – PERFORMANCE OPTIMIZATION
+
+Remove:
+
+Memory leaks
+
+Duplicate API calls
+
+Unused assets
+
+Unused packages
+
+Unused imports
+
+Expensive rebuilds
+
+Slow database queries
+
+Blocking operations
+
+Optimize:
+
+Rendering
+
+Caching
+
+Lazy loading
+
+Network requests
+
+Image loading
+
+Startup time
+
+Frame rate
+
+Battery usage
+
+---
+
+# STEP 11 – SECURITY AUDIT
+
+Verify:
+
+Authentication security
+
+Authorization
+
+API protection
+
+Input validation
+
+SQL/NoSQL injection prevention
+
+XSS protection
+
+CSRF protection (if applicable)
+
+Secrets management
+
+Environment variables
+
+Token security
+
+Encrypted storage
+
+Permission handling
+
+Secure network communication
+
+---
+
+# STEP 12 – ERROR HANDLING
+
+No feature should crash.
+
+Every operation must include:
+
+Try/catch
+
+Meaningful error messages
+
+Retry options
+
+Graceful recovery
+
+Fallback UI
+
+Logging
+
+---
+
+# STEP 13 – CODE QUALITY
+
+Refactor where needed.
+
+Remove:
+
+Duplicate code
+
+Unused files
+
+Unused variables
+
+Unused packages
+
+Dead functions
+
+Improve:
+
+Architecture
+
+Naming
+
+Readability
+
+Maintainability
+
+Consistency
+
+---
+
+# STEP 14 – TEST EVERYTHING
+
+Perform:
+
+Unit tests
+
+Integration tests
+
+UI tests
+
+Authentication tests
+
+Navigation tests
+
+Recording tests
+
+Upload tests
+
+Database tests
+
+Permission tests
+
+Stress tests
+
+Regression tests
+
+Edge case tests
+
+Repeated login/logout testing
+
+Repeated recording testing
+
+Low network testing
+
+Offline testing (if supported)
+
+Background/foreground testing
+
+---
+
+# STEP 15 – BUILD VALIDATION
+
+Ensure:
+
+Project builds successfully.
+
+No compile errors.
+
+No runtime exceptions.
+
+No dependency conflicts.
+
+No missing assets.
+
+No unresolved imports.
+
+No version conflicts.
+
+No warnings that could affect production.
+
+---
+
+# STEP 16 – FINAL QUALITY ASSURANCE
+
+Do not stop after fixing the first issue.
+
+Continue scanning until no additional issues remain.
+
+Repeat the audit multiple times until the application is stable.
+
+---
+
+# FINAL REPORT
+
+When finished, provide a detailed report that includes:
+
+1. Every issue found.
+2. Every file modified.
+3. Every bug fixed.
+4. Every placeholder removed.
+5. Every dependency updated.
+6. Authentication test results.
+7. Audio recording test results.
+8. Video recording test results.
+9. Navigation test results.
+10. Database test results.
+11. Performance improvements.
+12. Security improvements.
+13. Remaining known issues (if any).
+
+## IMPORTANT
+
+Do NOT claim that everything is working unless it has actually been verified through successful builds and tests.
+
+If any feature cannot be verified because of missing credentials, APIs, backend services, physical device requirements (such as camera or microphone), or external dependencies, clearly state what could not be tested and why.
+
+Only report a feature as "working" if you have concrete evidence from successful execution or automated tests. Otherwise, report it as "fixed but not fully verified" or "requires manual testing."
+
+The goal is a production-ready application with no known critical bugs, no placeholder functionality, stable authentication, and reliable media recording.
+
+One important note: no AI agent can honestly guarantee that **everything** in an app works unless it can actually run the app, build it successfully, execute tests, and in some cases test on a real device (especially for camera, microphone, and permissions). A trustworthy agent should distinguish between features it has verified and those that still require manual testing. This makes the final report much more reliable.
