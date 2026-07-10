@@ -2,3 +2,4 @@
 - [FixFair WebSocket proxy](fixfair-ws-proxy.md) — WS upgrade handler needs error guards on both socket + proxySocket or ECONNRESET crashes the server
 - [FixFair Expo CORS fix](fixfair-expo-cors.md) — must override origin + host headers when proxying to Expo bundler or CorsMiddleware rejects the request
 - [Supabase Auth wiring](supabase-auth-wiring.md) — no native Replit connector for Supabase; wire manually via @supabase/supabase-js, watch for URL-copy mistakes
+- [Video recording architecture](video-recording-web.md) — FixFair's diagnose video capture is web-only (MediaRecorder API), not expo-camera; scope any "production-ready recording" work accordingly.

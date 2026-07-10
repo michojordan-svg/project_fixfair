@@ -64,20 +64,34 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
+type RecState = 'idle' | 'recording' | 'paused' | 'stopped';
+type PermState = 'idle' | 'requesting' | 'granted' | 'denied' | 'error';
+type FacingMode = 'user' | 'environment';
+
+const MAX_RECORDING_SECONDS = 180; // 3 min hard cap to keep uploads reasonable
+const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
+
 export default function DiagnoseScreen() {
   const router = useRouter();
   const { addDiagnosis, appliances } = useUser();
 
   const [mode, setMode] = useState<DiagnoseMode>('video');
-  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<'video' | 'voice'>('video');
-  const [permissionDenied, setPermissionDenied] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
+
+  const [permState, setPermState] = useState<PermState>('idle');
+  const [permErrorMsg, setPermErrorMsg] = useState<string | null>(null);
+  const [recState, setRecState] = useState<RecState>('idle');
+  const [facingMode, setFacingMode] = useState<FacingMode>('environment');
+  const [canSwitchCamera, setCanSwitchCamera] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingDone, setRecordingDone] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisRecord | null>(null);
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [wasInterrupted, setWasInterrupted] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { role: 'ai', text: "👋 Hi! I'm your Virtual Appliance Doctor. Describe any home problem and I'll diagnose it, estimate costs, and recommend whether to repair or replace. What's going wrong?" }
@@ -89,19 +103,58 @@ export default function DiagnoseScreen() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const videoContainerRef = useRef<View>(null);
+  const previewVideoElRef = useRef<HTMLVideoElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const finalBlobRef = useRef<Blob | null>(null);
+  const wasRecordingBeforeHiddenRef = useRef(false);
 
   useEffect(() => {
     return () => {
       stopStream();
+      removePreviewVideoEl();
       if (timerRef.current) clearInterval(timerRef.current);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Background interruption handling: auto-pause recording if the tab is hidden ──
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (mediaRecorderRef.current?.state === 'recording') {
+          wasRecordingBeforeHiddenRef.current = true;
+          pauseRecording();
+          setWasInterrupted(true);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-stop at the max recording duration so uploads stay bounded
+  useEffect(() => {
+    if (recState === 'recording' && recordingTime >= MAX_RECORDING_SECONDS) {
+      stopAndReview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordingTime, recState]);
 
   const stopStream = () => {
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
+  };
+
+  const removePreviewVideoEl = () => {
+    if (Platform.OS !== 'web') return;
+    const node = videoContainerRef.current as unknown as HTMLDivElement | null;
+    const existing = node?.querySelector('video.fixfair-live-preview');
+    existing?.remove();
+    previewVideoElRef.current = null;
   };
 
   const attachVideoPreview = useCallback((stream: MediaStream) => {
@@ -109,109 +162,287 @@ export default function DiagnoseScreen() {
     setTimeout(() => {
       const node = videoContainerRef.current as unknown as HTMLDivElement | null;
       if (!node) return;
-      const existing = node.querySelector('video');
-      if (existing) { existing.srcObject = stream; return; }
+      removePreviewVideoEl();
       const videoEl = document.createElement('video');
+      videoEl.className = 'fixfair-live-preview';
       videoEl.srcObject = stream;
       videoEl.autoplay = true;
       videoEl.muted = true;
       videoEl.playsInline = true;
       videoEl.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:16px;z-index:1;';
+      if (facingMode === 'user') videoEl.style.transform = 'scaleX(-1)'; // mirror front camera like a mirror
       node.style.position = 'relative';
       node.appendChild(videoEl);
-      setCameraActive(true);
-    }, 200);
-  }, []);
+      previewVideoElRef.current = videoEl;
+    }, 50);
+  }, [facingMode]);
+
+  function friendlyMediaError(err: any): string {
+    const name = err?.name;
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+      return inputMode === 'video'
+        ? 'Camera/microphone access was denied. Please allow access in your browser settings and try again.'
+        : 'Microphone access was denied. Please allow access in your browser settings and try again.';
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+      return inputMode === 'video'
+        ? 'No camera or microphone was found on this device. Try Voice Note instead.'
+        : 'No microphone was found on this device.';
+    }
+    if (name === 'NotReadableError' || name === 'TrackStartError') {
+      return 'Your camera or microphone is already in use by another app. Close it and try again.';
+    }
+    if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+      return 'This device does not support the requested camera. Trying the default camera instead.';
+    }
+    if (name === 'SecurityError') {
+      return 'Camera access requires a secure (https) connection.';
+    }
+    return 'Could not access the camera/microphone. Please try again.';
+  }
 
   const startRecording = async () => {
-    setPermissionDenied(false);
+    setPermErrorMsg(null);
+    setDiagnosisError(null);
+    setWasInterrupted(false);
     chunksRef.current = [];
+    finalBlobRef.current = null;
 
     if (Platform.OS !== 'web') {
-      setStep(1);
+      // Native camera capture is not wired up in this build (web-only preview).
+      setPermErrorMsg('Recording is only available in the web preview right now.');
+      setPermState('error');
       return;
     }
 
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setPermErrorMsg('This browser does not support camera/microphone recording.');
+      setPermState('error');
+      return;
+    }
+
+    setPermState('requesting');
+    setStep(1);
+
     try {
-      const constraints = inputMode === 'video'
-        ? { video: { facingMode: 'environment' }, audio: true }
+      const constraints: MediaStreamConstraints = inputMode === 'video'
+        ? { video: { facingMode: { ideal: facingMode } }, audio: true }
         : { audio: true };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err: any) {
+        // Retry once with relaxed constraints if the exact facing mode isn't supported
+        if (inputMode === 'video' && (err?.name === 'OverconstrainedError' || err?.name === 'ConstraintNotSatisfiedError')) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } else {
+          throw err;
+        }
+      }
+
       streamRef.current = stream;
+      setPermState('granted');
 
       if (inputMode === 'video') {
         attachVideoPreview(stream);
+        // Detect whether device switching is even possible (more than one camera)
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const cams = devices.filter(d => d.kind === 'videoinput');
+          setCanSwitchCamera(cams.length > 1);
+        } catch {
+          setCanSwitchCamera(false);
+        }
       }
 
-      const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-          ? 'video/webm;codecs=vp9,opus'
-          : 'video/webm',
-      });
+      const mimeType = pickSupportedMimeType(inputMode);
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
+      recorder.onerror = () => {
+        setDiagnosisError('Recording failed unexpectedly. Please try again.');
+        cancelRecording();
+      };
       mediaRecorderRef.current = recorder;
       recorder.start(250);
+      setRecState('recording');
 
       setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
-      setStep(1);
     } catch (err: any) {
-      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        setPermissionDenied(true);
-      } else {
-        setStep(1);
-      }
+      setPermState('denied');
+      setPermErrorMsg(friendlyMediaError(err));
+      setRecState('idle');
+      stopStream();
     }
   };
 
-  const stopAndAnalyze = () => {
+  function pickSupportedMimeType(mode: 'video' | 'voice'): string | undefined {
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return undefined;
+    const videoCandidates = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4',
+    ];
+    const audioCandidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+    const candidates = mode === 'video' ? videoCandidates : audioCandidates;
+    return candidates.find(c => MediaRecorder.isTypeSupported(c));
+  }
+
+  const switchCamera = async () => {
+    if (inputMode !== 'video' || recState === 'stopped') return;
+    const nextFacing: FacingMode = facingMode === 'environment' ? 'user' : 'environment';
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: nextFacing } },
+        audio: false, // keep existing audio track from the original stream
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      if (!newVideoTrack) return;
+
+      const oldStream = streamRef.current;
+      if (oldStream) {
+        const oldVideoTrack = oldStream.getVideoTracks()[0];
+        oldVideoTrack?.stop();
+        oldStream.removeTrack(oldVideoTrack!);
+        oldStream.addTrack(newVideoTrack);
+
+        // Swap the video track inside the active MediaRecorder's stream too
+        if (mediaRecorderRef.current) {
+          const sender = mediaRecorderRef.current.stream.getVideoTracks()[0];
+          if (sender && sender !== newVideoTrack) {
+            mediaRecorderRef.current.stream.removeTrack(sender);
+            mediaRecorderRef.current.stream.addTrack(newVideoTrack);
+          }
+        }
+        attachVideoPreview(oldStream);
+      }
+      setFacingMode(nextFacing);
+    } catch (err: any) {
+      setDiagnosisError('Could not switch cameras on this device.');
+    }
+  };
+
+  const pauseRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state === 'recording') {
+      recorder.pause();
+      setRecState('paused');
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    }
+  };
+
+  const resumeRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state === 'paused') {
+      recorder.resume();
+      setRecState('recording');
+      setWasInterrupted(false);
+      timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
+    }
+  };
+
+  const stopAndReview = () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.onstop = () => {
-        const type = inputMode === 'video' ? 'video/webm' : 'audio/webm';
-        const blob = new Blob(chunksRef.current, { type });
-        const url = URL.createObjectURL(blob);
-        setRecordingDone(true);
-        finalizeDiagnosis(url);
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.onstop = () => {
+        finishStopAndReview();
       };
-      mediaRecorderRef.current.stop();
+      recorder.stop();
     } else {
-      finalizeDiagnosis(undefined);
+      finishStopAndReview();
     }
-    stopStream();
-    setStep(2);
   };
 
-  const finalizeDiagnosis = (mediaUrl?: string) => {
+  const finishStopAndReview = () => {
+    const type = inputMode === 'video' ? 'video/webm' : 'audio/webm';
+    const mimeType = mediaRecorderRef.current?.mimeType || type;
+    const blob = new Blob(chunksRef.current, { type: mimeType });
+
+    stopStream();
+    removePreviewVideoEl();
+    setRecState('stopped');
+
+    if (blob.size === 0) {
+      setDiagnosisError('The recording came out empty. Please try recording again.');
+      setStep(0);
+      return;
+    }
+    if (blob.size > MAX_UPLOAD_BYTES) {
+      setDiagnosisError('That recording is too large to upload. Please record a shorter clip.');
+      setStep(0);
+      return;
+    }
+
+    finalBlobRef.current = blob;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(URL.createObjectURL(blob));
+    setRecordingDone(true);
+    setStep(2); // review/playback step — user confirms before submitting
+  };
+
+  const retakeRecording = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    finalBlobRef.current = null;
+    chunksRef.current = [];
+    setRecordingDone(false);
+    setRecordingTime(0);
+    setRecState('idle');
+    setDiagnosisError(null);
+    startRecording();
+  };
+
+  const submitForAnalysis = async () => {
+    setStep(3);
+    setIsSubmitting(true);
+    setDiagnosisError(null);
+
     const cat = categories.find(c => c.id === selectedCategory);
     const categoryLabel = cat?.label ?? 'General';
-    const description = mediaUrl
+    const blob = finalBlobRef.current;
+    const description = blob
       ? `${inputMode === 'video' ? 'Video' : 'Voice'} recording submitted for analysis. Category: ${categoryLabel}.`
       : `User reported issue in category: ${categoryLabel}.`;
 
-    setDiagnosisError(null);
-    setTimeout(async () => {
-      try {
-        const record = await addDiagnosis(categoryLabel, description);
-        setDiagnosisResult(record);
-        setStep(3);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Diagnosis failed';
-        setDiagnosisError(msg);
-        setStep(0);
-      }
-    }, 2500);
+    try {
+      const record = await addDiagnosis(
+        categoryLabel,
+        description,
+        blob
+          ? {
+              blob,
+              filename: `diagnosis.${inputMode === 'video' ? 'webm' : 'webm'}`,
+              mimeType: blob.type,
+            }
+          : undefined
+      );
+      setDiagnosisResult(record);
+      setStep(4);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Diagnosis failed. Please check your connection and try again.';
+      setDiagnosisError(msg);
+      setStep(2); // back to review so the user can retry the submit without re-recording
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const cancelRecording = () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      try { recorder.stop(); } catch {}
+    }
     stopStream();
-    setCameraActive(false);
+    removePreviewVideoEl();
+    setRecState('idle');
+    setPermState('idle');
     setRecordingTime(0);
     setStep(0);
   };
@@ -230,13 +461,25 @@ export default function DiagnoseScreen() {
   };
 
   const resetToStart = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    finalBlobRef.current = null;
     setStep(0);
     setSelectedCategory(null);
     setRecordingTime(0);
     setRecordingDone(false);
-    setPermissionDenied(false);
+    setPermState('idle');
+    setPermErrorMsg(null);
+    setRecState('idle');
     setDiagnosisResult(null);
     setDiagnosisError(null);
+  };
+
+  const finalBlobSize = (): string => {
+    const size = finalBlobRef.current?.size;
+    if (!size) return '';
+    const mb = size / (1024 * 1024);
+    return mb >= 1 ? `· ${mb.toFixed(1)} MB` : `· ${Math.round(size / 1024)} KB`;
   };
 
   return (
@@ -270,19 +513,17 @@ export default function DiagnoseScreen() {
                     </Text>
                   </View>
 
-                  {permissionDenied && (
+                  {(permState === 'denied' || permState === 'error') && !!permErrorMsg && (
                     <View style={styles.permissionBanner}>
                       <Ionicons name="mic-off" size={16} color={theme.danger} />
-                      <Text style={styles.permissionText}>
-                        Camera/microphone access was denied. Please allow access in your browser settings and try again.
-                      </Text>
+                      <Text style={styles.permissionText}>{permErrorMsg}</Text>
                     </View>
                   )}
 
                   {!!diagnosisError && (
                     <View style={[styles.permissionBanner, { borderColor: 'rgba(239,68,68,0.3)' }]}>
                       <Ionicons name="alert-circle" size={16} color={theme.danger} />
-                      <Text style={styles.permissionText}>{diagnosisError}. Please try again.</Text>
+                      <Text style={styles.permissionText}>{diagnosisError}</Text>
                     </View>
                   )}
 
@@ -343,10 +584,12 @@ export default function DiagnoseScreen() {
                 <>
                   {inputMode === 'video' ? (
                     <View style={styles.recordingArea} ref={videoContainerRef}>
-                      <View style={[styles.recBadge, { zIndex: 2 }]}>
-                        <Text style={styles.recBadgeText}>● REC {formatTime(recordingTime)}</Text>
+                      <View style={[styles.recBadge, { zIndex: 2 }, recState === 'paused' && { backgroundColor: 'rgba(245,158,11,0.85)' }]}>
+                        <Text style={styles.recBadgeText}>
+                          {recState === 'paused' ? '⏸ PAUSED' : '● REC'} {formatTime(recordingTime)}
+                        </Text>
                       </View>
-                      {!cameraActive && (
+                      {permState === 'requesting' && (
                         <View style={styles.cameraPlaceholder}>
                           <View style={styles.recordButton}>
                             <View style={styles.recordButtonInner} />
@@ -355,38 +598,146 @@ export default function DiagnoseScreen() {
                           <Text style={styles.recordingHint}>Allow camera access if prompted</Text>
                         </View>
                       )}
-                      {cameraActive && (
-                        <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center', zIndex: 2 }}>
-                          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600', textShadowColor: '#000', textShadowRadius: 4 }}>
-                            🔴 Recording {formatTime(recordingTime)} — point at the issue
+                      {(permState === 'denied' || permState === 'error') && (
+                        <View style={styles.cameraPlaceholder}>
+                          <Ionicons name="videocam-off" size={32} color={theme.danger} />
+                          <Text style={[styles.recordingText, { color: theme.danger, textAlign: 'center', paddingHorizontal: 20 }]}>
+                            {permErrorMsg}
                           </Text>
                         </View>
+                      )}
+                      {permState === 'granted' && (
+                        <>
+                          {canSwitchCamera && (
+                            <TouchableOpacity style={styles.switchCameraBtn} onPress={switchCamera}>
+                              <Ionicons name="camera-reverse" size={20} color="#fff" />
+                            </TouchableOpacity>
+                          )}
+                          <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center', zIndex: 2 }}>
+                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600', textShadowColor: '#000', textShadowRadius: 4 }}>
+                              {recState === 'paused' ? '⏸ Paused — resume to continue' : `🔴 Recording ${formatTime(recordingTime)} — point at the issue`}
+                            </Text>
+                          </View>
+                        </>
                       )}
                     </View>
                   ) : (
                     <View style={[styles.recordingArea, { backgroundColor: 'rgba(139,92,246,0.05)', borderColor: 'rgba(139,92,246,0.3)' }]}>
-                      <View style={[styles.recBadge, { backgroundColor: 'rgba(139,92,246,0.85)' }]}>
-                        <Text style={styles.recBadgeText}>● VOICE {formatTime(recordingTime)}</Text>
+                      <View style={[styles.recBadge, { backgroundColor: recState === 'paused' ? 'rgba(245,158,11,0.85)' : 'rgba(139,92,246,0.85)' }]}>
+                        <Text style={styles.recBadgeText}>{recState === 'paused' ? '⏸ PAUSED' : '● VOICE'} {formatTime(recordingTime)}</Text>
                       </View>
-                      <View style={styles.cameraPlaceholder}>
-                        <View style={[styles.recordButton, { borderColor: theme.accentPurple }]}>
-                          <Ionicons name="mic" size={32} color={theme.accentPurple} />
+                      {(permState === 'denied' || permState === 'error') ? (
+                        <View style={styles.cameraPlaceholder}>
+                          <Ionicons name="mic-off" size={32} color={theme.danger} />
+                          <Text style={[styles.recordingText, { color: theme.danger, textAlign: 'center', paddingHorizontal: 20 }]}>
+                            {permErrorMsg}
+                          </Text>
                         </View>
-                        <Text style={styles.recordingText}>Listening… {formatTime(recordingTime)}</Text>
-                        <Text style={styles.recordingHint}>Describe the problem clearly</Text>
-                        {/* Animated waveform dots */}
-                        <View style={styles.waveform}>
-                          {[3, 6, 9, 5, 8, 4, 7, 3, 9, 6, 4, 8].map((h, i) => (
-                            <View key={i} style={[styles.waveBar, { height: h * 3, backgroundColor: theme.accentPurple + 'AA' }]} />
-                          ))}
+                      ) : (
+                        <View style={styles.cameraPlaceholder}>
+                          <View style={[styles.recordButton, { borderColor: theme.accentPurple }]}>
+                            <Ionicons name="mic" size={32} color={theme.accentPurple} />
+                          </View>
+                          <Text style={styles.recordingText}>
+                            {permState === 'requesting' ? 'Starting microphone…' : recState === 'paused' ? 'Paused' : `Listening… ${formatTime(recordingTime)}`}
+                          </Text>
+                          <Text style={styles.recordingHint}>Describe the problem clearly</Text>
+                          <View style={styles.waveform}>
+                            {[3, 6, 9, 5, 8, 4, 7, 3, 9, 6, 4, 8].map((h, i) => (
+                              <View key={i} style={[styles.waveBar, { height: h * 3, backgroundColor: theme.accentPurple + 'AA', opacity: recState === 'paused' ? 0.3 : 1 }]} />
+                            ))}
+                          </View>
                         </View>
-                      </View>
+                      )}
                     </View>
                   )}
 
-                  <TouchableOpacity style={styles.primaryButton} onPress={stopAndAnalyze}>
-                    <Ionicons name="stop-circle" size={20} color={theme.bg} />
-                    <Text style={styles.primaryButtonText}>Stop & Analyze</Text>
+                  {wasInterrupted && recState === 'paused' && (
+                    <View style={[styles.permissionBanner, { borderColor: 'rgba(245,158,11,0.3)' }]}>
+                      <Ionicons name="alert-circle" size={16} color={theme.warning} />
+                      <Text style={styles.permissionText}>Recording paused because the app went to the background. Resume when ready.</Text>
+                    </View>
+                  )}
+
+                  {permState === 'granted' && recState === 'recording' && (
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity style={[styles.secondaryButton, { flex: 1 }]} onPress={pauseRecording}>
+                        <Ionicons name="pause" size={18} color={theme.text} />
+                        <Text style={styles.secondaryButtonText}>Pause</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.primaryButton, { flex: 1.4 }]} onPress={stopAndReview}>
+                        <Ionicons name="stop-circle" size={20} color={theme.bg} />
+                        <Text style={styles.primaryButtonText}>Stop</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {permState === 'granted' && recState === 'paused' && (
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity style={[styles.secondaryButton, { flex: 1 }]} onPress={resumeRecording}>
+                        <Ionicons name="play" size={18} color={theme.text} />
+                        <Text style={styles.secondaryButtonText}>Resume</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.primaryButton, { flex: 1.4 }]} onPress={stopAndReview}>
+                        <Ionicons name="stop-circle" size={20} color={theme.bg} />
+                        <Text style={styles.primaryButtonText}>Stop</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  <TouchableOpacity style={styles.secondaryButton} onPress={cancelRecording}>
+                    <Text style={styles.secondaryButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Step 2 — Review / Playback before submitting */}
+              {step === 2 && (
+                <>
+                  <View style={styles.aiBubble}>
+                    <Text style={styles.aiBubbleText}>
+                      ✅ Recording captured. Review it below, then submit for AI analysis — or retake if you want another take.
+                    </Text>
+                  </View>
+
+                  {!!diagnosisError && (
+                    <View style={[styles.permissionBanner, { borderColor: 'rgba(239,68,68,0.3)' }]}>
+                      <Ionicons name="alert-circle" size={16} color={theme.danger} />
+                      <Text style={styles.permissionText}>{diagnosisError}</Text>
+                    </View>
+                  )}
+
+                  {Platform.OS === 'web' && previewUrl ? (
+                    inputMode === 'video' ? (
+                      <View style={styles.recordingArea}>
+                        {React.createElement('video', {
+                          src: previewUrl,
+                          controls: true,
+                          playsInline: true,
+                          style: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', borderRadius: 16, background: '#000' },
+                        })}
+                      </View>
+                    ) : (
+                      <View style={[styles.recordingArea, { backgroundColor: 'rgba(139,92,246,0.05)', borderColor: 'rgba(139,92,246,0.3)', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="musical-notes" size={32} color={theme.accentPurple} style={{ marginBottom: 12 }} />
+                        {React.createElement('audio', { src: previewUrl, controls: true, style: { width: '85%' } })}
+                      </View>
+                    )
+                  ) : (
+                    <View style={styles.recordingArea}>
+                      <Text style={styles.recordingText}>Preview unavailable</Text>
+                    </View>
+                  )}
+
+                  <Text style={{ fontSize: 12, color: theme.textMuted, textAlign: 'center', marginTop: 4, marginBottom: spacing.md }}>
+                    Duration: {formatTime(recordingTime)} {finalBlobSize()}
+                  </Text>
+
+                  <TouchableOpacity style={styles.primaryButton} onPress={submitForAnalysis} disabled={isSubmitting}>
+                    <Ionicons name="cloud-upload" size={20} color={theme.bg} />
+                    <Text style={styles.primaryButtonText}>Submit for Analysis</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.secondaryButton} onPress={retakeRecording}>
+                    <Ionicons name="refresh" size={16} color={theme.text} />
+                    <Text style={styles.secondaryButtonText}>Retake</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.secondaryButton} onPress={cancelRecording}>
                     <Text style={styles.secondaryButtonText}>Cancel</Text>
@@ -394,16 +745,16 @@ export default function DiagnoseScreen() {
                 </>
               )}
 
-              {/* Step 2 — Analyzing */}
-              {step === 2 && (
+              {/* Step 3 — Analyzing / Uploading */}
+              {step === 3 && (
                 <View style={styles.analyzingContainer}>
                   <View style={styles.analyzingSpinner}>
                     <ActivityIndicator size="large" color={theme.accent} />
                   </View>
                   <Text style={styles.analyzingTitle}>AI Analyzing…</Text>
-                  <Text style={styles.analyzingSubtitle}>Computer vision detecting fault patterns</Text>
+                  <Text style={styles.analyzingSubtitle}>Uploading recording and detecting fault patterns</Text>
                   <Card style={{ width: '100%' }}>
-                    {['Frame extraction', 'Object detection (YOLO)', 'Issue classification', 'Parts lookup & pricing'].map((label, i) => (
+                    {['Uploading recording', 'Frame extraction', 'Issue classification', 'Parts lookup & pricing'].map((label, i) => (
                       <View key={i} style={styles.analysisStep}>
                         {i < 2
                           ? <Ionicons name="checkmark-circle" size={18} color={theme.success} />
@@ -415,8 +766,8 @@ export default function DiagnoseScreen() {
                 </View>
               )}
 
-              {/* Step 3 — Result */}
-              {step === 3 && diagnosisResult && (
+              {/* Step 4 — Result */}
+              {step === 4 && diagnosisResult && (
                 <>
                   <View style={styles.resultHeader}>
                     <View style={styles.resultIconWrap}>
@@ -655,7 +1006,7 @@ const styles = StyleSheet.create({
   categoryLabel: { fontSize: 12, color: theme.textMuted, fontWeight: '600' },
   primaryButton: { backgroundColor: theme.accent, paddingVertical: 15, borderRadius: borderRadius.xl, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 12 },
   primaryButtonText: { color: theme.bg, fontSize: 15, fontWeight: '700' },
-  secondaryButton: { backgroundColor: theme.bgCard, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', paddingVertical: 13, borderRadius: borderRadius.xl, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  secondaryButton: { backgroundColor: theme.bgCard, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', paddingVertical: 13, borderRadius: borderRadius.xl, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 12 },
   secondaryButtonText: { color: theme.text, fontSize: 14, fontWeight: '500' },
   recordingArea: {
     height: 240,
@@ -675,6 +1026,11 @@ const styles = StyleSheet.create({
   recordingHint: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 4 },
   recBadge: { position: 'absolute', top: 14, right: 14, backgroundColor: 'rgba(239,68,68,0.85)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100, zIndex: 2 },
   recBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  switchCameraBtn: {
+    position: 'absolute', top: 14, left: 14, zIndex: 2,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center',
+  },
   waveform: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 12 },
   waveBar: { width: 3, borderRadius: 2 },
   analyzingContainer: { alignItems: 'center', marginVertical: 20 },

@@ -113,6 +113,37 @@ export async function apiCreateDiagnosis(category: string, description: string) 
   return request<{ diagnosis: DiagnosisData }>('POST', '/diagnoses', { category, description });
 }
 
+export async function apiCreateDiagnosisWithMedia(
+  category: string,
+  description: string,
+  media: { blob: Blob; filename: string; mimeType: string }
+) {
+  const url = `${getBaseUrl()}/diagnoses`;
+  const token = getToken();
+
+  const form = new FormData();
+  form.append('category', category);
+  form.append('description', description);
+  form.append('media', media.blob, media.filename);
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(url, { method: 'POST', headers, body: form });
+  const data = await res.json().catch(() => ({ error: 'Unexpected server response' }));
+
+  if (res.status === 401 && token) {
+    clearToken();
+    sessionExpiredListener?.();
+  }
+
+  if (!res.ok) {
+    throw new Error((data as { error?: string }).error || `Upload failed (${res.status})`);
+  }
+
+  return data as { diagnosis: DiagnosisData };
+}
+
 // ── Bookings / Jobs ───────────────────────────────────────────
 export async function apiGetBookings() {
   return request<{ jobs: JobData[] }>('GET', '/bookings');
@@ -180,6 +211,7 @@ export interface DiagnosisData {
   maintenanceTips: string[];
   description: string;
   status: string;
+  videoUrl?: string | null;
 }
 
 export interface JobData {

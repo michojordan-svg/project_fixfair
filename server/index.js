@@ -12,6 +12,9 @@ const EXPO_PORT = 8081;
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 
+// ── Uploaded media (recorded diagnosis videos/voice notes) ─────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ── API routes ────────────────────────────────────────────────
 app.use('/api/auth',        require('./routes/auth'));
 app.use('/api/profile',     require('./routes/profile'));

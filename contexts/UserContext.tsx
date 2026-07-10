@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { theme } from '@/constants/theme';
 import {
   apiGetProfile, apiUpdateProfile,
-  apiGetDiagnoses, apiCreateDiagnosis,
+  apiGetDiagnoses, apiCreateDiagnosis, apiCreateDiagnosisWithMedia,
   apiGetBookings,
   apiGetAppliances, apiAddAppliance, apiDeleteAppliance,
   UserData, DiagnosisData, JobData, ApplianceData,
@@ -84,7 +84,7 @@ interface UserContextType {
   isLoading: boolean;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   dismissReminder: (id: number) => void;
-  addDiagnosis: (category: string, description: string) => Promise<DiagnosisRecord>;
+  addDiagnosis: (category: string, description: string, media?: { blob: Blob; filename: string; mimeType: string }) => Promise<DiagnosisRecord>;
   refreshJobs: () => Promise<void>;
   markNotificationsRead: () => void;
   addAppliance: (payload: { name: string; category: string; brand?: string; model?: string; purchased_date?: string; warranty_expiry?: string; notes?: string; replace_cost?: number }) => Promise<void>;
@@ -142,6 +142,7 @@ function diagnosisDataToRecord(d: DiagnosisData): DiagnosisRecord {
     risks: d.risks,
     immediateSteps: d.immediateSteps,
     maintenanceTips: d.maintenanceTips,
+    videoUrl: d.videoUrl || undefined,
   };
 }
 
@@ -200,8 +201,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setReminders(prev => prev.map(r => r.id === id ? { ...r, dismissed: true } : r));
   }, []);
 
-  const addDiagnosis = useCallback(async (category: string, description: string): Promise<DiagnosisRecord> => {
-    const { diagnosis } = await apiCreateDiagnosis(category, description);
+  const addDiagnosis = useCallback(async (
+    category: string,
+    description: string,
+    media?: { blob: Blob; filename: string; mimeType: string }
+  ): Promise<DiagnosisRecord> => {
+    const { diagnosis } = media
+      ? await apiCreateDiagnosisWithMedia(category, description, media)
+      : await apiCreateDiagnosis(category, description);
     const record = diagnosisDataToRecord(diagnosis);
     setDiagnoses(prev => [record, ...prev]);
     return record;
