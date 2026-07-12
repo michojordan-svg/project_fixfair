@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Avatar, Badge } from '@/components/Card';
+import { Stars } from '@/components/Stars';
 import { useUser } from '@/contexts/UserContext';
 import { apiGetTechnicians, TechnicianData } from '@/lib/api';
 

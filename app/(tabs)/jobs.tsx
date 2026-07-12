@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { theme, spacing, borderRadius } from '@/constants/theme';
 import { Card, Badge, Avatar } from '@/components/Card';
+import { Stars } from '@/components/Stars';
 import { useUser } from '@/contexts/UserContext';
 
 export default function JobsScreen() {
