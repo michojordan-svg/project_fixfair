@@ -119,7 +119,7 @@ router.post('/', requireAuth, async (req, res) => {
         brand || null, model || null,
         defaults.icon, defaults.color,
         purchased_date || null, warranty_expiry || null,
-        notes || null, parseInt(replace_cost) || 500,
+        notes || null, replace_cost != null ? (parseInt(replace_cost) || 0) : 500,
       ]
     );
     return res.status(201).json({ appliance: formatAppliance(result.rows[0]) });

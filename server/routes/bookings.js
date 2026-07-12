@@ -37,7 +37,7 @@ router.post('/', requireAuth, async (req, res) => {
        RETURNING *`,
       [id, req.userId, diagnosisId || null, techId || 1, techName, techInitials || 'TN',
        techColor || '#3B82F6', scheduledSlot, address, instructions || '',
-       amount || 170, category || 'Repair', title, scheduledSlot, dateLabel]
+       amount != null ? amount : 170, category || 'Repair', title, scheduledSlot, dateLabel]
     );
     return res.status(201).json({ job: formatBooking(result.rows[0]) });
   } catch (err) {
@@ -63,10 +63,14 @@ router.patch('/:id/complete', requireAuth, async (req, res) => {
 
 router.patch('/:id/review', requireAuth, async (req, res) => {
   const { rating, review } = req.body;
+  const numRating = Number(rating);
+  if (rating != null && (isNaN(numRating) || numRating < 1 || numRating > 5)) {
+    return res.status(400).json({ error: 'Rating must be a number between 1 and 5' });
+  }
   try {
     const result = await db.query(
       `UPDATE bookings SET rating=$1, review=$2 WHERE id=$3 AND user_id=$4 RETURNING *`,
-      [rating || 5, review || '', req.params.id, req.userId]
+      [rating != null ? numRating : 5, review || '', req.params.id, req.userId]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Booking not found' });
     return res.json({ job: formatBooking(result.rows[0]) });
